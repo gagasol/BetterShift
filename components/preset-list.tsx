@@ -54,6 +54,7 @@ export function PresetList({
   // If loading is true, parent should show FullscreenLoader
 
   if (presets.length === 0) {
+    return null;
     return (
       <div className="border-2 border-dashed rounded-lg p-4 sm:p-6 text-center space-y-2 sm:space-y-3">
         <div className="flex items-center justify-center gap-2 text-muted-foreground">

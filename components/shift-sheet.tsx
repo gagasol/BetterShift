@@ -9,7 +9,10 @@ import { PresetSelect } from "@/components/preset-select";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
 import { useShiftForm } from "@/hooks/useShiftForm";
 import { useCalendarPermission } from "@/hooks/useCalendarPermission";
+import { useCalendarMembers } from "@/hooks/useCalendarMembers";
 import { formatDateToLocal } from "@/lib/date-utils";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ShiftSheetProps {
   open: boolean;
@@ -20,6 +23,8 @@ interface ShiftSheetProps {
   onPresetsChange?: () => void;
   calendarId?: string;
   readOnly?: boolean; // Explicitly set read-only mode
+  enableEmployeeBasedInterface?: boolean; // Check if the new Interface should be used
+  onDeleteShift?: (shiftId: string) => Promise<void>;
 }
 
 export interface ShiftFormData {
@@ -42,12 +47,16 @@ export function ShiftSheet({
   onPresetsChange,
   calendarId,
   readOnly = false,
+  enableEmployeeBasedInterface = false,
+  onDeleteShift,
 }: ShiftSheetProps) {
   const t = useTranslations();
   const permission = useCalendarPermission(calendarId);
   const [isSaving, setIsSaving] = useState(false);
   const initialFormDataRef = useRef<string | null>(null);
 
+  const { members, isLoading: membersLoading } = useCalendarMembers(calendarId);
+  console.log(members);
   // Determine if sheet should be in read-only mode
   const isReadOnly = readOnly || !permission.canEdit;
 
@@ -172,9 +181,11 @@ export function ShiftSheet({
         {isReadOnly && <ReadOnlyBanner message={t("guest.cannotEdit")} />}
 
         {/* Preset Selection */}
-        {!shift && !isReadOnly && (
+        {!shift && !isReadOnly && !enableEmployeeBasedInterface && (
           <PresetSelect presets={presets} onPresetSelect={handlePresetSelect} />
         )}
+
+
 
         <ShiftFormFields
           formData={formData}
@@ -185,7 +196,38 @@ export function ShiftSheet({
           onPresetNameChange={setPresetName}
           isEditing={!!shift}
           readOnly={isReadOnly}
+          enableEmployeeBasedInterface={enableEmployeeBasedInterface}
+          members={members}
+          membersLoading={membersLoading}
         />
+      
+        {/* delete button */}
+        {shift && !isReadOnly && onDeleteShift && (
+          <div className="pt-6 mt-4 border-t border-border">
+          <Button
+          type="button"
+          variant="destructive"
+          className="w-full sm:w-auto"
+          disabled={isSaving}
+          onClick={async () => {
+            if (window.confirm(t("admin.pleaseConfirmDeletion"))) {
+              setIsSaving(true);
+              try {
+                await onDeleteShift(shift.id);
+                onOpenChange(false);
+              } catch (error) {
+                console.error("Error while deleting:", error);
+              } finally {
+                setIsSaving(false);
+                }
+            }
+          }}
+          >
+          <Trash2 className="mr-2 h-4 w-4" />
+          {t("common.delete")}
+          </Button>
+          </div>
+        )}
       </div>
     </BaseSheet>
   );

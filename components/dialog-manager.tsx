@@ -107,6 +107,12 @@ interface DialogManagerProps {
   onEditNoteFromList: (note: CalendarNote) => void;
   onDeleteNoteFromList: (noteId: string) => void;
   onAddNewNote: () => void;
+
+  // Interface flags
+  enableEmployeeBasedInterface: boolean;
+
+  //delete in popupwindow
+  onDeleteShift?: (shiftId: string) => Promise<void>;
 }
 
 export function DialogManager(props: DialogManagerProps) {
@@ -126,6 +132,8 @@ export function DialogManager(props: DialogManagerProps) {
         shift={props.editingShift}
         onPresetsChange={props.onPresetsChange}
         calendarId={props.selectedCalendar || undefined}
+        enableEmployeeBasedInterface={props.enableEmployeeBasedInterface}
+        onDeleteShift={props.onDeleteShift}
       />
 
       {props.selectedCalendar && (

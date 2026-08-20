@@ -99,6 +99,9 @@ function HomeContent() {
     Map<string, Set<string>>
   >(new Map());
 
+  // Feature Flag: changs the behaviour of adding shifts by making it employee rather than shift based
+  const [useEmployeeBasedInterface, setUseEmployeeBasedInterface] = useState(true);
+
   // Query client for cache invalidation
   const queryClient = useQueryClient();
 
@@ -280,8 +283,14 @@ function HomeContent() {
       typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
         ? parseLocalDate(date)
         : new Date(date);
-    shiftActions.handleAddShift(targetDate, selectedPresetId);
+    if (useEmployeeBasedInterface) {
+      setSelectedDate(targetDate);
+      dialogStates.setShowShiftDialog(true);
+    } else {
+      shiftActions.handleAddShift(targetDate, selectedPresetId);
+    }
   };
+
 
   const handleDayRightClick = (e: React.MouseEvent, date: Date | string) => {
     e.preventDefault();
@@ -430,6 +439,8 @@ function HomeContent() {
         ? parseLocalDate(date)
         : new Date(date);
 
+    console.log("TEST: handleCompareDayClick aufgerufen mit Datum:", targetDate);
+
     if (!selectedPresetId) {
       // No preset selected, just show existing shifts if any
       const shifts = compareData.shiftsMap.get(calendarId) || [];
@@ -443,6 +454,7 @@ function HomeContent() {
         dialogStates.setSelectedDayShifts(dayShifts);
         dialogStates.setShowDayShiftsDialog(true);
       }
+      
       return;
     }
 
@@ -760,6 +772,8 @@ function HomeContent() {
           onEditNoteFromList={handleEditNoteFromList}
           onDeleteNoteFromList={handleDeleteNoteFromList}
           onAddNewNote={handleAddNewNoteFromList}
+          enableEmployeeBasedInterface={useEmployeeBasedInterface}
+          onDeleteShift={handleDeleteShiftFromDayDialog}
         />
 
         <AppFooter versionInfo={versionInfo} />
@@ -847,6 +861,8 @@ function HomeContent() {
           onEditNoteFromList={handleEditNoteFromList}
           onDeleteNoteFromList={handleDeleteNoteFromList}
           onAddNewNote={handleAddNewNoteFromList}
+          enableEmployeeBasedInterface={useEmployeeBasedInterface}
+          onDeleteShift={handleDeleteShiftFromDayDialog}
         />
       </>
     );
@@ -1019,6 +1035,8 @@ function HomeContent() {
         onEditNoteFromList={handleEditNoteFromList}
         onDeleteNoteFromList={handleDeleteNoteFromList}
         onAddNewNote={handleAddNewNoteFromList}
+        enableEmployeeBasedInterface={useEmployeeBasedInterface}
+        onDeleteShift={handleDeleteShiftFromDayDialog}
       />
 
       <AppFooter versionInfo={versionInfo} />

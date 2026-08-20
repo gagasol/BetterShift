@@ -58,6 +58,8 @@
     "no": "Nein",
     "viewAll": "Alle anzeigen",
     "viewDetails": "Details anzeigen",
+    "employee": "Mitarbeitende/r",
+    "select_employee": "Auswählen...",
     "weekday": {
       "monday": "Mo",
       "tuesday": "Di",
