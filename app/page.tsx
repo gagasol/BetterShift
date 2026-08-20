@@ -99,9 +99,6 @@ function HomeContent() {
     Map<string, Set<string>>
   >(new Map());
 
-  // Feature Flag: changs the behaviour of adding shifts by making it employee rather than shift based
-  const [useEmployeeBasedInterface, setUseEmployeeBasedInterface] = useState(true);
-
   // Query client for cache invalidation
   const queryClient = useQueryClient();
 
@@ -283,7 +280,7 @@ function HomeContent() {
       typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
         ? parseLocalDate(date)
         : new Date(date);
-    if (useEmployeeBasedInterface) {
+    if (viewSettings.enableEmployeeBasedInterface) {
       setSelectedDate(targetDate);
       dialogStates.setShowShiftDialog(true);
     } else {
@@ -893,6 +890,8 @@ function HomeContent() {
         selectedPresetId={selectedPresetId}
         showMobileCalendarDialog={dialogStates.showMobileCalendarDialog}
         hasSyncErrors={hasSyncErrors}
+        enableEmployeeBasedInterface={viewSettings.enableEmployeeBasedInterface}
+        onToggleEmployeeBasedInterface={viewSettings.toggleEmployeeBasedInterface}
         onSelectCalendar={setSelectedCalendar}
         onSelectPreset={setSelectedPresetId}
         onCreateCalendar={() => dialogStates.setShowCalendarDialog(true)}
@@ -1035,7 +1034,10 @@ function HomeContent() {
         onEditNoteFromList={handleEditNoteFromList}
         onDeleteNoteFromList={handleDeleteNoteFromList}
         onAddNewNote={handleAddNewNoteFromList}
-        enableEmployeeBasedInterface={useEmployeeBasedInterface}
+        enableEmployeeBasedInterface={viewSettings.enableEmployeeBasedInterface}
+        onEnableEmployeeBasedInterfaceChange={
+          viewSettings.handleEnableEmployeeBasedInterfaceChange
+        }
         onDeleteShift={handleDeleteShiftFromDayDialog}
       />
 

@@ -1,6 +1,11 @@
 import { useState, useCallback } from "react";
+import { FEATURE_FLAGS, getFeatureFlag, setFeatureFlag } from "@/lib/feature-flags";
 
 export function useViewSettings() {
+  const [enableEmployeeBasedInterface, setEnableEmployeeBasedInterfaceState] = useState<boolean>(() => {
+    return getFeatureFlag(FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE, true);
+  });
+
   const [shiftsPerDay, setShiftsPerDay] = useState<number | null>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("shifts-per-day");
@@ -206,7 +211,24 @@ export function useViewSettings() {
     }
   }, []);
 
+  const handleEnableEmployeeBasedInterfaceChange = useCallback(
+    (enabled: boolean) => {
+      setEnableEmployeeBasedInterfaceState(enabled);
+      setFeatureFlag(FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE, enabled);
+    },
+    []
+  );
+
+  const toggleEmployeeBasedInterface = useCallback(() => {
+    setEnableEmployeeBasedInterfaceState((prev) => {
+      const next = !prev;
+      setFeatureFlag(FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE, next);
+      return next;
+    });
+  }, []);
+
   return {
+    enableEmployeeBasedInterface,
     shiftsPerDay,
     externalShiftsPerDay,
     showShiftNotes,
@@ -218,6 +240,8 @@ export function useViewSettings() {
     highlightWeekends,
     highlightedWeekdays,
     highlightColor,
+    handleEnableEmployeeBasedInterfaceChange,
+    toggleEmployeeBasedInterface,
     handleShiftsPerDayChange,
     handleExternalShiftsPerDayChange,
     handleShowShiftNotesChange,

@@ -195,8 +195,8 @@ export default function LoginPage() {
     try {
       // Get returnUrl from query params for OAuth callback
       const returnUrl = searchParams.get("returnUrl") || "/";
-      await signIn.oauth2({
-        providerId: "custom-oidc",
+      await signIn.social({
+        provider: "custom-oidc",
         callbackURL: returnUrl,
       });
     } catch (error) {
