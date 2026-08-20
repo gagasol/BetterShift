@@ -24,17 +24,12 @@ import {
   Infinity,
   ArrowUpDown,
   Highlighter,
-  Users,
-  Briefcase,
-  CheckCircle2,
 } from "lucide-react";
 import { PRESET_COLORS } from "@/lib/constants";
 
 interface ViewSettingsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  enableEmployeeBasedInterface?: boolean;
-  onEnableEmployeeBasedInterfaceChange?: (enabled: boolean) => void;
   shiftsPerDay: number | null;
   externalShiftsPerDay: number | null;
   showShiftNotes: boolean;
@@ -60,8 +55,6 @@ interface ViewSettingsSheetProps {
 export function ViewSettingsSheet({
   open,
   onOpenChange,
-  enableEmployeeBasedInterface = true,
-  onEnableEmployeeBasedInterfaceChange,
   shiftsPerDay,
   externalShiftsPerDay,
   showShiftNotes,
@@ -101,90 +94,6 @@ export function ViewSettingsSheet({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-          {/* Interface & Workflow Mode */}
-          {onEnableEmployeeBasedInterfaceChange && (
-            <div className="space-y-3 pb-6 border-b border-border/50">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                <Label className="text-sm font-semibold">
-                  {t("view.interfaceMode")}
-                </Label>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t("view.interfaceModeHint")}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                {/* Employee-Based Mode (New) */}
-                <button
-                  type="button"
-                  onClick={() => onEnableEmployeeBasedInterfaceChange(true)}
-                  className={`relative p-3.5 rounded-xl border-2 text-left transition-all flex flex-col justify-between gap-2.5 ${
-                    enableEmployeeBasedInterface
-                      ? "bg-primary/10 border-primary shadow-sm"
-                      : "bg-muted/20 border-border/40 hover:border-border hover:bg-muted/40"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                          enableEmployeeBasedInterface
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        <Users className="h-4 w-4" />
-                      </div>
-                      <span className="font-semibold text-sm">
-                        {t("view.employeeBasedMode")}
-                      </span>
-                    </div>
-                    {enableEmployeeBasedInterface && (
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {t("view.employeeBasedModeDesc")}
-                  </p>
-                </button>
-
-                {/* Shift-Based Mode (Original) */}
-                <button
-                  type="button"
-                  onClick={() => onEnableEmployeeBasedInterfaceChange(false)}
-                  className={`relative p-3.5 rounded-xl border-2 text-left transition-all flex flex-col justify-between gap-2.5 ${
-                    !enableEmployeeBasedInterface
-                      ? "bg-primary/10 border-primary shadow-sm"
-                      : "bg-muted/20 border-border/40 hover:border-border hover:bg-muted/40"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                          !enableEmployeeBasedInterface
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        <Briefcase className="h-4 w-4" />
-                      </div>
-                      <span className="font-semibold text-sm">
-                        {t("view.shiftBasedMode")}
-                      </span>
-                    </div>
-                    {!enableEmployeeBasedInterface && (
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {t("view.shiftBasedModeDesc")}
-                  </p>
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Regular Shifts per Day */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">

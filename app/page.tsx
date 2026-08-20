@@ -39,6 +39,7 @@ import { formatDateToLocal, parseLocalDate } from "@/lib/date-utils";
 import { findNotesForDate } from "@/lib/event-utils";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
 
 function HomeContent() {
   const router = useRouter();
@@ -280,7 +281,7 @@ function HomeContent() {
       typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
         ? parseLocalDate(date)
         : new Date(date);
-    if (viewSettings.enableEmployeeBasedInterface) {
+    if (FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE) {
       setSelectedDate(targetDate);
       dialogStates.setShowShiftDialog(true);
     } else {
@@ -890,8 +891,6 @@ function HomeContent() {
         selectedPresetId={selectedPresetId}
         showMobileCalendarDialog={dialogStates.showMobileCalendarDialog}
         hasSyncErrors={hasSyncErrors}
-        enableEmployeeBasedInterface={viewSettings.enableEmployeeBasedInterface}
-        onToggleEmployeeBasedInterface={viewSettings.toggleEmployeeBasedInterface}
         onSelectCalendar={setSelectedCalendar}
         onSelectPreset={setSelectedPresetId}
         onCreateCalendar={() => dialogStates.setShowCalendarDialog(true)}
@@ -1034,9 +1033,8 @@ function HomeContent() {
         onEditNoteFromList={handleEditNoteFromList}
         onDeleteNoteFromList={handleDeleteNoteFromList}
         onAddNewNote={handleAddNewNoteFromList}
-        enableEmployeeBasedInterface={viewSettings.enableEmployeeBasedInterface}
-        onEnableEmployeeBasedInterfaceChange={
-          viewSettings.handleEnableEmployeeBasedInterfaceChange
+        enableEmployeeBasedInterface={
+          FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE
         }
         onDeleteShift={handleDeleteShiftFromDayDialog}
       />

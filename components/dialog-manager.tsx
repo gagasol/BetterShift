@@ -110,7 +110,6 @@ interface DialogManagerProps {
 
   // Interface flags
   enableEmployeeBasedInterface: boolean;
-  onEnableEmployeeBasedInterfaceChange?: (enabled: boolean) => void;
 
   //delete in popupwindow
   onDeleteShift?: (shiftId: string) => Promise<void>;
@@ -196,10 +195,6 @@ export function DialogManager(props: DialogManagerProps) {
       <ViewSettingsSheet
         open={props.showViewSettingsDialog}
         onOpenChange={props.onViewSettingsDialogChange}
-        enableEmployeeBasedInterface={props.enableEmployeeBasedInterface}
-        onEnableEmployeeBasedInterfaceChange={
-          props.onEnableEmployeeBasedInterfaceChange
-        }
         shiftsPerDay={props.viewSettings.shiftsPerDay}
         externalShiftsPerDay={props.viewSettings.externalShiftsPerDay}
         showShiftNotes={props.viewSettings.showShiftNotes}

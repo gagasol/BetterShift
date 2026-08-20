@@ -22,15 +22,12 @@ import {
   Plus,
   Bell,
   ExternalLink,
-  Users,
-  Briefcase,
 } from "lucide-react";
 import { ShiftPreset } from "@/lib/db/schema";
 import { useVersionUpdateCheck } from "@/hooks/useVersionUpdate";
 import { useConnectionStatus } from "@/hooks/useConnectionStatus";
 import { ChangelogDialog } from "@/components/changelog-dialog";
 import { useLocale } from "next-intl";
-import { toast } from "sonner";
 
 interface AppHeaderProps {
   calendars: CalendarWithCount[];
@@ -39,8 +36,6 @@ interface AppHeaderProps {
   selectedPresetId: string | undefined;
   showMobileCalendarDialog: boolean;
   hasSyncErrors?: boolean;
-  enableEmployeeBasedInterface?: boolean;
-  onToggleEmployeeBasedInterface?: () => void;
   onSelectCalendar: (id: string) => void;
   onSelectPreset: (id: string | undefined) => void;
   onCreateCalendar: () => void;
@@ -64,8 +59,6 @@ export function AppHeader({
   selectedPresetId,
   showMobileCalendarDialog,
   hasSyncErrors = false,
-  enableEmployeeBasedInterface = true,
-  onToggleEmployeeBasedInterface,
   onSelectCalendar,
   onSelectPreset,
   onCreateCalendar,
@@ -165,48 +158,6 @@ export function AppHeader({
                     />
                   </div>
                 </div>
-
-                {/* Interface Mode Switcher */}
-                {onToggleEmployeeBasedInterface && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      onToggleEmployeeBasedInterface();
-                      toast.success(
-                        enableEmployeeBasedInterface
-                          ? t("view.modeSwitchedToShift")
-                          : t("view.modeSwitchedToEmployee")
-                      );
-                    }}
-                    className={`h-8 px-2.5 text-xs font-medium rounded-lg border transition-all flex items-center gap-1.5 shrink-0 ${
-                      enableEmployeeBasedInterface
-                        ? "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20"
-                        : "bg-muted/50 border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
-                    title={
-                      enableEmployeeBasedInterface
-                        ? `${t("view.modeBadgeEmployee")} - ${t("view.employeeBasedModeDesc")}`
-                        : `${t("view.modeBadgeShift")} - ${t("view.shiftBasedModeDesc")}`
-                    }
-                  >
-                    {enableEmployeeBasedInterface ? (
-                      <>
-                        <Users className="h-3.5 w-3.5 shrink-0" />
-                        <span className="hidden xl:inline">
-                          {t("view.modeBadgeEmployee")}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Briefcase className="h-3.5 w-3.5 shrink-0" />
-                        <span className="hidden xl:inline">
-                          {t("view.modeBadgeShift")}
-                        </span>
-                      </>
-                    )}
-                  </Button>
-                )}
 
                 {/* Divider */}
                 {isAuthEnabled && (

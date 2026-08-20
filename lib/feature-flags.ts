@@ -1,60 +1,22 @@
 /**
- * Feature Flags & Architecture Mode Configuration
+ * Developer Global Feature Flags & Architecture Configuration
  *
- * This module provides a centralized registry for feature flags in BetterShift.
- * Use this pattern to safely introduce new experimental features or conflicting
- * implementations without breaking existing core functionality.
+ * This file provides a centralized global configuration for developers to toggle
+ * application-wide behaviors and features (e.g. Employee-Based Interface vs. original Shift-Based Interface).
+ *
+ * Change values here directly or via NEXT_PUBLIC_* environment variables to apply globally across the app.
  */
-
-export interface FeatureFlagConfig {
-  id: string;
-  name: string;
-  description: string;
-  defaultValue: boolean;
-  category: "interface" | "workflow" | "experimental";
-}
 
 export const FEATURE_FLAGS = {
   /**
    * Employee-Based Interface vs. Original Shift-Based Interface
-   * - When true: Changes shift creation to assign team members/employees directly.
-   * - When false: Original shift workflow with presets, custom titles, and all-day shifts.
+   * - true: Enables employee-based interface (assign shifts directly to roster members/employees).
+   * - false: Enables original shift-based interface (custom titles, shift presets, all-day events).
    */
-  ENABLE_EMPLOYEE_BASED_INTERFACE: "enable-employee-based-interface",
+  ENABLE_EMPLOYEE_BASED_INTERFACE:
+    process.env.NEXT_PUBLIC_ENABLE_EMPLOYEE_BASED_INTERFACE !== undefined
+      ? process.env.NEXT_PUBLIC_ENABLE_EMPLOYEE_BASED_INTERFACE === "true"
+      : true,
 } as const;
 
-export const FEATURE_FLAG_DEFINITIONS: Record<string, FeatureFlagConfig> = {
-  [FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE]: {
-    id: FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE,
-    name: "Employee-Based Interface",
-    description: "Switch between shift-centric planning and employee roster assignments",
-    defaultValue: true,
-    category: "workflow",
-  },
-};
-
-/**
- * Reads a feature flag safely from localStorage with a fallback default.
- */
-export function getFeatureFlag(flagKey: string, defaultValue: boolean): boolean {
-  if (typeof window === "undefined") return defaultValue;
-  try {
-    const stored = localStorage.getItem(flagKey);
-    if (stored === null) return defaultValue;
-    return stored === "true";
-  } catch {
-    return defaultValue;
-  }
-}
-
-/**
- * Persists a feature flag value to localStorage.
- */
-export function setFeatureFlag(flagKey: string, value: boolean): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(flagKey, value.toString());
-  } catch (e) {
-    console.error(`Failed to save feature flag ${flagKey}:`, e);
-  }
-}
+export type FeatureFlags = typeof FEATURE_FLAGS;

@@ -13,6 +13,7 @@ import { useCalendarMembers } from "@/hooks/useCalendarMembers";
 import { formatDateToLocal } from "@/lib/date-utils";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
 
 interface ShiftSheetProps {
   open: boolean;
@@ -47,7 +48,7 @@ export function ShiftSheet({
   onPresetsChange,
   calendarId,
   readOnly = false,
-  enableEmployeeBasedInterface = false,
+  enableEmployeeBasedInterface = FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE,
   onDeleteShift,
 }: ShiftSheetProps) {
   const t = useTranslations();
