@@ -1,0 +1,159 @@
+import { useTranslations } from "next-intl";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { ShiftFormData } from "@/components/shift-sheet";
+import { PRESET_COLORS } from "@/lib/constants";
+import { CalendarMember } from "@/hooks/useCalendarMembers";
+
+interface EmployeeShiftFormFieldsProps {
+  formData: ShiftFormData;
+  onFormDataChange: (data: ShiftFormData) => void;
+  onBlur?: () => void;
+  readOnly?: boolean;
+  members?: CalendarMember[];
+  membersLoading?: boolean;
+}
+
+export function EmployeeShiftFormFields({
+  formData,
+  onFormDataChange,
+  onBlur,
+  readOnly = false,
+  members,
+  membersLoading = false,
+}: EmployeeShiftFormFieldsProps) {
+  const t = useTranslations();
+
+  return (
+    <div className="space-y-5">
+      {/* Employee Selection */}
+      <div className="space-y-2.5">
+        <Label htmlFor="employee" className="text-sm font-medium flex items-center gap-2">
+          <div className="w-1 h-4 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
+          {t("common.employee")}
+        </Label>
+        <select
+          id="employee"
+          value={formData.title}
+          disabled={readOnly || membersLoading}
+          className="flex h-11 w-full rounded-md border border-border/50 bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus:border-primary/50 focus:ring-primary/20"
+          onChange={(e) => {
+            const selectedIndex = e.target.selectedIndex;
+            const selectedName = e.target.options[selectedIndex]?.text ?? "";
+            const selectedValue = e.target.value;
+
+            if (selectedValue !== "") {
+              onFormDataChange({ ...formData, title: selectedName });
+            }
+          }}
+          onBlur={onBlur}
+        >
+          <option value="">{t("common.select_employee")}</option>
+          {membersLoading ? (
+            <option value="" disabled>
+              Loading...
+            </option>
+          ) : (
+            members?.map((member) => (
+              <option key={member.id} value={member.name || ""}>
+                {member.name || `Member (${member.id.slice(0, 6)})`}
+              </option>
+            ))
+          )}
+        </select>
+      </div>
+
+      {/* Date */}
+      <div className="space-y-2.5">
+        <Label
+          htmlFor="employee-shift-date"
+          className="text-sm font-medium flex items-center gap-2"
+        >
+          <div className="w-1 h-4 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
+          {t("shift.date")}
+        </Label>
+        <Input
+          id="employee-shift-date"
+          type="date"
+          value={formData.date}
+          onChange={(e) =>
+            onFormDataChange({ ...formData, date: e.target.value })
+          }
+          onBlur={onBlur}
+          disabled={readOnly}
+          className="h-11 border-border/50 focus:border-primary/50 focus:ring-primary/20 bg-background/50 backdrop-blur-sm"
+        />
+      </div>
+
+      {/* Start and End Times */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="employee-start-time" className="text-sm font-medium">
+            {t("shift.startTime")}
+          </Label>
+          <Input
+            id="employee-start-time"
+            type="time"
+            value={formData.startTime}
+            onChange={(e) =>
+              onFormDataChange({ ...formData, startTime: e.target.value })
+            }
+            onBlur={onBlur}
+            disabled={readOnly}
+            className="h-11 border-border/50 focus:border-primary/50 focus:ring-primary/20 bg-background/50"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="employee-end-time" className="text-sm font-medium">
+            {t("shift.endTime")}
+          </Label>
+          <Input
+            id="employee-end-time"
+            type="time"
+            value={formData.endTime}
+            onChange={(e) =>
+              onFormDataChange({ ...formData, endTime: e.target.value })
+            }
+            onBlur={onBlur}
+            disabled={readOnly}
+            className="h-11 border-border/50 focus:border-primary/50 focus:ring-primary/20 bg-background/50"
+          />
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div className="space-y-2.5">
+        <Label
+          htmlFor="employee-shift-notes"
+          className="text-sm font-medium flex items-center gap-2"
+        >
+          <div className="w-1 h-4 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
+          {t("form.notesLabel")}
+        </Label>
+        <Textarea
+          id="employee-shift-notes"
+          placeholder={t("form.notesPlaceholder")}
+          value={formData.notes}
+          onChange={(e) =>
+            onFormDataChange({ ...formData, notes: e.target.value })
+          }
+          onBlur={onBlur}
+          disabled={readOnly}
+          rows={3}
+          className="border-border/50 focus:border-primary/50 focus:ring-primary/20 bg-background/50 resize-none"
+        />
+      </div>
+
+      {/* Color Picker */}
+      <ColorPicker
+        color={formData.color || "#3b82f6"}
+        onChange={(color) => onFormDataChange({ ...formData, color })}
+        label={t("form.colorLabel")}
+        presetColors={PRESET_COLORS}
+        disabled={readOnly}
+      />
+    </div>
+  );
+}

@@ -7,7 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { ShiftFormData } from "@/components/shift-sheet";
 import { PRESET_COLORS } from "@/lib/constants";
-import { CalendarMember } from "@/hooks/useCalendarMembers";
 
 interface ShiftFormFieldsProps {
   formData: ShiftFormData;
@@ -20,9 +19,6 @@ interface ShiftFormFieldsProps {
   onBlur?: () => void;
   showSaved?: boolean;
   readOnly?: boolean;
-  enableEmployeeBasedInterface?: boolean;
-  members?: CalendarMember[];
-  membersLoading?: boolean;
 }
 
 export function ShiftFormFields({
@@ -35,48 +31,12 @@ export function ShiftFormFields({
   isEditing,
   onBlur,
   readOnly = false,
-  enableEmployeeBasedInterface = false,
-  members,
-  membersLoading,
 }: ShiftFormFieldsProps) {
   const t = useTranslations();
-  console.log(members);
 
   return (
     <div className="space-y-5">
-        {enableEmployeeBasedInterface && (
-          <>
-        <label htmlFor="employee" className="text-sm font-medium">
-          {t("common.employee")}
-        </label>
-        <select
-          id="employee"
-          value={formData.title}
-          disabled={membersLoading}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          onChange={(e) => {
-            const selectedIndex = e.target.selectedIndex;
-            const selectedName = e.target.options[selectedIndex].text;
-            const selectedValue = e.target.value;
-
-            if (selectedValue !== "") {
-              onFormDataChange({ ...formData, title: selectedName });
-            }
-          }}
-        >
-          <option value="">{t("common.select_employee")}</option>
-          {membersLoading ? ( 
-            <option value="" disabled>Loading...</option>
-                            ) : (
-                            members?.map((member) => (
-                              <option key={member.id} value={member.name}>
-                              {member.name}
-                              </option>
-                            ))
-                            )}
-        </select>
-        </>
-        )}
+      {/* Date */}
       <div className="space-y-2.5">
         <Label
           htmlFor="date"
@@ -98,7 +58,7 @@ export function ShiftFormFields({
         />
       </div>
 
-      {!enableEmployeeBasedInterface && (
+      {/* All Day Shift Checkbox */}
       <div className="flex items-center space-x-2 p-3 bg-muted/30 rounded-lg border border-border/30">
         <Checkbox
           id="allDay"
@@ -113,8 +73,8 @@ export function ShiftFormFields({
           {t("shift.allDayShift")}
         </Label>
       </div>
-      )}
 
+      {/* Start / End Time */}
       {!formData.isAllDay && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
@@ -158,7 +118,7 @@ export function ShiftFormFields({
         </motion.div>
       )}
 
-      {!enableEmployeeBasedInterface && (
+      {/* Shift Title */}
       <div className="space-y-2.5">
         <Label
           htmlFor="title"
@@ -180,8 +140,8 @@ export function ShiftFormFields({
           autoFocus={!readOnly}
         />
       </div>
-      )}
 
+      {/* Notes */}
       <div className="space-y-2.5">
         <Label
           htmlFor="notes"
@@ -204,6 +164,7 @@ export function ShiftFormFields({
         />
       </div>
 
+      {/* Color Picker */}
       <ColorPicker
         color={formData.color || "#3b82f6"}
         onChange={(color) => onFormDataChange({ ...formData, color })}
@@ -213,7 +174,7 @@ export function ShiftFormFields({
       />
 
       {/* Auto-Save as Preset */}
-      {!isEditing && !readOnly && !enableEmployeeBasedInterface && (
+      {!isEditing && !readOnly && (
         <div className="space-y-3 p-4 bg-primary/5 border border-primary/20 rounded-xl">
           <div className="flex items-center space-x-2">
             <Checkbox

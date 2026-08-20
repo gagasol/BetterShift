@@ -770,7 +770,6 @@ function HomeContent() {
           onEditNoteFromList={handleEditNoteFromList}
           onDeleteNoteFromList={handleDeleteNoteFromList}
           onAddNewNote={handleAddNewNoteFromList}
-          enableEmployeeBasedInterface={useEmployeeBasedInterface}
           onDeleteShift={handleDeleteShiftFromDayDialog}
         />
 
@@ -859,7 +858,6 @@ function HomeContent() {
           onEditNoteFromList={handleEditNoteFromList}
           onDeleteNoteFromList={handleDeleteNoteFromList}
           onAddNewNote={handleAddNewNoteFromList}
-          enableEmployeeBasedInterface={useEmployeeBasedInterface}
           onDeleteShift={handleDeleteShiftFromDayDialog}
         />
       </>
@@ -1033,9 +1031,6 @@ function HomeContent() {
         onEditNoteFromList={handleEditNoteFromList}
         onDeleteNoteFromList={handleDeleteNoteFromList}
         onAddNewNote={handleAddNewNoteFromList}
-        enableEmployeeBasedInterface={
-          FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE
-        }
         onDeleteShift={handleDeleteShiftFromDayDialog}
       />
 

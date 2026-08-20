@@ -1,5 +1,6 @@
 import { CalendarSheet } from "@/components/calendar-sheet";
 import { ShiftSheet, ShiftFormData } from "@/components/shift-sheet";
+import { EmployeeShiftSheet } from "@/components/employee-shift-sheet";
 import { CalendarSettingsSheet } from "@/components/calendar-settings-sheet";
 import { ExternalSyncManageSheet } from "@/components/external-sync-manage-sheet";
 import { SyncNotificationDialog } from "@/components/sync-notification-dialog";
@@ -9,6 +10,7 @@ import { NoteSheet } from "@/components/note-sheet";
 import { NotesListDialog } from "@/components/notes-list-dialog";
 import { CalendarWithCount, ShiftWithCalendar } from "@/lib/types";
 import { CalendarNote } from "@/lib/db/schema";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
 
 interface DialogManagerProps {
   // Calendar Dialog
@@ -108,9 +110,6 @@ interface DialogManagerProps {
   onDeleteNoteFromList: (noteId: string) => void;
   onAddNewNote: () => void;
 
-  // Interface flags
-  enableEmployeeBasedInterface: boolean;
-
   //delete in popupwindow
   onDeleteShift?: (shiftId: string) => Promise<void>;
 }
@@ -124,17 +123,28 @@ export function DialogManager(props: DialogManagerProps) {
         onSubmit={props.onCreateCalendar}
       />
 
-      <ShiftSheet
-        open={props.showShiftDialog}
-        onOpenChange={props.onShiftDialogChange}
-        onSubmit={props.onShiftSubmit}
-        selectedDate={props.selectedDate}
-        shift={props.editingShift}
-        onPresetsChange={props.onPresetsChange}
-        calendarId={props.selectedCalendar || undefined}
-        enableEmployeeBasedInterface={props.enableEmployeeBasedInterface}
-        onDeleteShift={props.onDeleteShift}
-      />
+      {FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE ? (
+        <EmployeeShiftSheet
+          open={props.showShiftDialog}
+          onOpenChange={props.onShiftDialogChange}
+          onSubmit={props.onShiftSubmit}
+          selectedDate={props.selectedDate}
+          shift={props.editingShift}
+          calendarId={props.selectedCalendar || undefined}
+          onDeleteShift={props.onDeleteShift}
+        />
+      ) : (
+        <ShiftSheet
+          open={props.showShiftDialog}
+          onOpenChange={props.onShiftDialogChange}
+          onSubmit={props.onShiftSubmit}
+          selectedDate={props.selectedDate}
+          shift={props.editingShift}
+          onPresetsChange={props.onPresetsChange}
+          calendarId={props.selectedCalendar || undefined}
+          onDeleteShift={props.onDeleteShift}
+        />
+      )}
 
       {props.selectedCalendar && (
         <>

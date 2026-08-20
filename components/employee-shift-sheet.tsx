@@ -4,97 +4,92 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { ShiftWithCalendar } from "@/lib/types";
-import { ShiftFormFields } from "@/components/shift-form-fields";
-import { PresetSelect } from "@/components/preset-select";
+import { EmployeeShiftFormFields } from "@/components/employee-shift-form-fields";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
-import { useShiftForm } from "@/hooks/useShiftForm";
 import { useCalendarPermission } from "@/hooks/useCalendarPermission";
+import { useCalendarMembers } from "@/hooks/useCalendarMembers";
 import { formatDateToLocal } from "@/lib/date-utils";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ShiftFormData } from "@/components/shift-sheet";
 
-interface ShiftSheetProps {
+interface EmployeeShiftSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (shift: ShiftFormData) => void | Promise<void>;
   selectedDate?: Date;
   shift?: ShiftWithCalendar;
-  onPresetsChange?: () => void;
   calendarId?: string;
   readOnly?: boolean;
   onDeleteShift?: (shiftId: string) => Promise<void>;
 }
 
-export interface ShiftFormData {
-  date: string;
-  startTime: string;
-  endTime: string;
-  title: string;
-  color?: string;
-  notes?: string;
-  presetId?: string;
-  isAllDay?: boolean;
-}
-
-export function ShiftSheet({
+export function EmployeeShiftSheet({
   open,
   onOpenChange,
   onSubmit,
   selectedDate,
   shift,
-  onPresetsChange,
   calendarId,
   readOnly = false,
   onDeleteShift,
-}: ShiftSheetProps) {
+}: EmployeeShiftSheetProps) {
   const t = useTranslations();
   const permission = useCalendarPermission(calendarId);
   const [isSaving, setIsSaving] = useState(false);
   const initialFormDataRef = useRef<string | null>(null);
 
-  // Determine if sheet should be in read-only mode
+  const { members, isLoading: membersLoading } = useCalendarMembers(calendarId);
   const isReadOnly = readOnly || !permission.canEdit;
 
-  const {
-    formData,
-    setFormData,
-    presets,
-    saveAsPreset,
-    setSaveAsPreset,
-    presetName,
-    setPresetName,
-    applyPreset,
-    saveAsPresetHandler,
-    resetForm,
-  } = useShiftForm({ open, shift, selectedDate, calendarId });
+  const [formData, setFormData] = useState<ShiftFormData>({
+    date: formatDateToLocal(selectedDate || new Date()),
+    startTime: "09:00",
+    endTime: "17:00",
+    title: "",
+    color: "#3b82f6",
+    notes: "",
+    isAllDay: false,
+  });
 
-  // Store initial form data when sheet opens
+  // Sync form data on open or shift change
   useEffect(() => {
-    if (open && shift) {
-      // Store initial data matching formData structure
-      const initialData: ShiftFormData = {
-        date:
-          shift.date && shift.date instanceof Date
-            ? formatDateToLocal(shift.date)
-            : formatDateToLocal(new Date()),
-        startTime: shift.startTime,
-        endTime: shift.endTime,
-        title: shift.title,
-        notes: shift.notes || "",
-        color: shift.color,
-        isAllDay: shift.isAllDay || false,
-        presetId: shift.presetId || undefined,
-      };
-      initialFormDataRef.current = JSON.stringify(initialData);
-    } else if (!open) {
+    if (open) {
+      if (shift) {
+        const initialData: ShiftFormData = {
+          date:
+            shift.date && shift.date instanceof Date
+              ? formatDateToLocal(shift.date)
+              : formatDateToLocal(new Date()),
+          startTime: shift.startTime || "09:00",
+          endTime: shift.endTime || "17:00",
+          title: shift.title || "",
+          notes: shift.notes || "",
+          color: shift.color || "#3b82f6",
+          isAllDay: false,
+        };
+        setFormData(initialData);
+        initialFormDataRef.current = JSON.stringify(initialData);
+      } else {
+        const initialData: ShiftFormData = {
+          date: formatDateToLocal(selectedDate || new Date()),
+          startTime: "09:00",
+          endTime: "17:00",
+          title: "",
+          color: "#3b82f6",
+          notes: "",
+          isAllDay: false,
+        };
+        setFormData(initialData);
+        initialFormDataRef.current = null;
+      }
+    } else {
       initialFormDataRef.current = null;
     }
-  }, [open, shift]);
+  }, [open, shift, selectedDate]);
 
-  const hasChanges = () => {
-    // For existing shifts, compare with initial data
+  const hasChanges = (): boolean => {
     if (shift && initialFormDataRef.current) {
-      // Create comparable version of current formData
       const currentData: ShiftFormData = {
         date: formData.date,
         startTime: formData.startTime,
@@ -102,19 +97,13 @@ export function ShiftSheet({
         title: formData.title,
         notes: formData.notes || "",
         color: formData.color,
-        isAllDay: formData.isAllDay || false,
-        presetId: formData.presetId || undefined,
+        isAllDay: false,
       };
-
       return JSON.stringify(currentData) !== initialFormDataRef.current;
     }
-
-    // For new shifts, check if user has entered any data
-    return (
+    return Boolean(
       formData.title.trim() !== "" ||
-      (formData.notes && formData.notes.trim() !== "") ||
-      saveAsPreset ||
-      presetName.trim() !== ""
+        (formData.notes && formData.notes.trim() !== "")
     );
   };
 
@@ -123,36 +112,14 @@ export function ShiftSheet({
 
     setIsSaving(true);
     try {
-      // If all-day, set default times for backend
-      const submitData = {
+      await onSubmit({
         ...formData,
-        startTime: formData.isAllDay ? "00:00" : formData.startTime,
-        endTime: formData.isAllDay ? "23:59" : formData.endTime,
-      };
-
-      await onSubmit(submitData);
-
-      // Save as preset if enabled and it's a new shift
-      if (!shift && saveAsPreset && presetName.trim()) {
-        const success = await saveAsPresetHandler(submitData);
-        if (success && onPresetsChange) {
-          onPresetsChange();
-        }
-      }
-
-      if (!shift) {
-        resetForm();
-      }
+        isAllDay: false,
+      });
       onOpenChange(false);
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handlePresetSelect = async (
-    preset: Parameters<typeof applyPreset>[0]
-  ) => {
-    applyPreset(preset);
   };
 
   return (
@@ -175,23 +142,16 @@ export function ShiftSheet({
         {/* Read-only banner */}
         {isReadOnly && <ReadOnlyBanner message={t("guest.cannotEdit")} />}
 
-        {/* Preset Selection */}
-        {!shift && !isReadOnly && (
-          <PresetSelect presets={presets} onPresetSelect={handlePresetSelect} />
-        )}
-
-        <ShiftFormFields
+        {/* Employee shift form fields */}
+        <EmployeeShiftFormFields
           formData={formData}
           onFormDataChange={setFormData}
-          saveAsPreset={saveAsPreset}
-          onSaveAsPresetChange={setSaveAsPreset}
-          presetName={presetName}
-          onPresetNameChange={setPresetName}
-          isEditing={!!shift}
           readOnly={isReadOnly}
+          members={members}
+          membersLoading={membersLoading}
         />
 
-        {/* Delete button */}
+        {/* Delete Shift Button */}
         {shift && !isReadOnly && onDeleteShift && (
           <div className="pt-6 mt-4 border-t border-border">
             <Button
