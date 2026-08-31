@@ -323,7 +323,7 @@ export function CalendarGrid({
 
   return (
     <div className="w-full overflow-x-auto pb-2 scrollbar-thin">
-      <div className="min-w-[950px] sm:min-w-[1100px] md:min-w-full">
+      <div className="w-full min-w-[800px] sm:min-w-[1200px] lg:min-w-[1600px]">
         <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-6">
           {[
             t("common.weekday.monday"),
@@ -429,7 +429,7 @@ export function CalendarGrid({
                   }),
                 }}
                 className={`
-                  min-h-[175px] sm:min-h-[200px] md:min-h-[210px] p-0 rounded-md sm:rounded-lg text-sm transition-all relative flex flex-col border sm:border-2 overflow-hidden
+                  min-h-[150px] sm:min-h-[175px] md:min-h-[190px] p-0 rounded-md sm:rounded-lg text-sm transition-all relative flex flex-col border sm:border-2 overflow-hidden
                   ${isCurrentMonth ? "text-foreground" : "text-muted-foreground/50"}
                   ${
                     isTodayDate

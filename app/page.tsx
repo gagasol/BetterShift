@@ -919,7 +919,7 @@ function HomeContent() {
         onHidePresetHeaderChange={viewSettings.handleHidePresetHeaderChange}
       />
 
-      <div className="container max-w-7xl mx-auto px-1 py-3 sm:p-4 flex-1">
+      <div className="w-full px-1 py-3 sm:p-4 flex-1">
         <CalendarContent
           calendarDays={calendarDays}
           currentDate={currentDate}
