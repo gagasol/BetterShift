@@ -33,6 +33,7 @@ import { CalendarCompareView } from "@/components/calendar-compare-view";
 import { AppFooter } from "@/components/app-footer";
 import { AppHeader } from "@/components/app-header";
 import { DialogManager } from "@/components/dialog-manager";
+import { ReportAbsenceSheet } from "@/components/report-absence-sheet";
 import { ShiftFormData } from "@/components/shift-sheet";
 import { getCalendarDays } from "@/lib/calendar-utils";
 import { formatDateToLocal, parseLocalDate } from "@/lib/date-utils";
@@ -121,6 +122,9 @@ function HomeContent() {
 
   // View settings
   const viewSettings = useViewSettings();
+
+  // Absence Sheet state
+  const [showReportAbsenceSheet, setShowReportAbsenceSheet] = useState(false);
 
   // Dialog states
   const dialogStates = useDialogStates();
@@ -909,6 +913,7 @@ function HomeContent() {
         onManualShiftCreation={handleManualShiftCreation}
         onMobileCalendarDialogChange={dialogStates.setShowMobileCalendarDialog}
         onViewSettingsClick={() => dialogStates.setShowViewSettingsDialog(true)}
+        onReportAbsence={() => setShowReportAbsenceSheet(true)}
         presetsLoading={presetsLoading}
         hidePresetHeader={viewSettings.hidePresetHeader}
         onHidePresetHeaderChange={viewSettings.handleHidePresetHeaderChange}
@@ -1043,6 +1048,13 @@ function HomeContent() {
         onDeleteNoteFromList={handleDeleteNoteFromList}
         onAddNewNote={handleAddNewNoteFromList}
         onDeleteShift={handleDeleteShiftFromDayDialog}
+      />
+
+      <ReportAbsenceSheet
+        open={showReportAbsenceSheet}
+        onOpenChange={setShowReportAbsenceSheet}
+        calendarId={selectedCalendar || ""}
+        calendars={calendars}
       />
 
       <AppFooter versionInfo={versionInfo} />

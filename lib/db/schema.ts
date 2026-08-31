@@ -417,6 +417,48 @@ export const calendarAccessTokens = sqliteTable(
   ]
 );
 
+export const absences = sqliteTable(
+  "absences",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    calendarId: text("calendar_id")
+      .notNull()
+      .references(() => calendars.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => user.id, {
+      onDelete: "cascade",
+    }),
+    userName: text("user_name").notNull(),
+    type: text("type").notNull().default("absence"), // absence, vacation, sickness, other
+    reason: text("reason"),
+    isRecurring: integer("is_recurring", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    startDate: integer("start_date", { mode: "timestamp" }).notNull(),
+    endDate: integer("end_date", { mode: "timestamp" }).notNull(),
+    isAllDay: integer("is_all_day", { mode: "boolean" }).notNull().default(true),
+    startTime: text("start_time").default("08:00"),
+    endTime: text("end_time").default("17:00"),
+    recurringDays: text("recurring_days"), // JSON string array of weekday numbers e.g. [1,2,3,4,5] (1=Mon ... 7=Sun)
+    status: text("status", { enum: ["approved", "pending", "rejected"] })
+      .notNull()
+      .default("approved"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("absences_calendarId_idx").on(table.calendarId),
+    index("absences_userId_idx").on(table.userId),
+    index("absences_startDate_idx").on(table.startDate),
+    index("absences_endDate_idx").on(table.endDate),
+  ]
+);
+
 export type Calendar = typeof calendars.$inferSelect;
 export type NewCalendar = typeof calendars.$inferInsert;
 
@@ -425,6 +467,9 @@ export type NewCalendarLocation = typeof calendarLocations.$inferInsert;
 
 export type CalendarAccessToken = typeof calendarAccessTokens.$inferSelect;
 export type NewCalendarAccessToken = typeof calendarAccessTokens.$inferInsert;
+
+export type Absence = typeof absences.$inferSelect;
+export type NewAbsence = typeof absences.$inferInsert;
 
 export type ExternalSync = typeof externalSyncs.$inferSelect;
 export type NewExternalSync = typeof externalSyncs.$inferInsert;
@@ -463,6 +508,7 @@ export const userRelations = relations(user, ({ many }) => ({
   calendarShares: many(calendarShares),
   calendarSubscriptions: many(userCalendarSubscriptions),
   auditLogs: many(auditLogs),
+  absences: many(absences),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -491,6 +537,7 @@ export const calendarsRelations = relations(calendars, ({ one, many }) => ({
   shifts: many(shifts),
   presets: many(shiftPresets),
   notes: many(calendarNotes),
+  absences: many(absences),
   externalSyncs: many(externalSyncs),
   syncLogs: many(syncLogs),
 }));
@@ -574,3 +621,15 @@ export const calendarAccessTokensRelations = relations(
     }),
   })
 );
+
+export const absencesRelations = relations(absences, ({ one }) => ({
+  calendar: one(calendars, {
+    fields: [absences.calendarId],
+    references: [calendars.id],
+  }),
+  user: one(user, {
+    fields: [absences.userId],
+    references: [user.id],
+  }),
+}));
+

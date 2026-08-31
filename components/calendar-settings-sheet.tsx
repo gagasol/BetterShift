@@ -17,11 +17,12 @@ import { Label } from "@/components/ui/label";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { CalendarShareManagementSheet } from "@/components/calendar-share-management-sheet";
 import { CalendarLocationsManager } from "@/components/calendar-locations-manager";
+import { CalendarAbsencesSheet } from "@/components/calendar-absences-sheet";
 import { useCalendars } from "@/hooks/useCalendars";
 import { useCalendarPermission } from "@/hooks/useCalendarPermission";
 import { useAuthFeatures } from "@/hooks/useAuthFeatures";
 import { PRESET_COLORS } from "@/lib/constants";
-import { AlertTriangle, Trash2, Download, Cloud, Users } from "lucide-react";
+import { AlertTriangle, Trash2, Download, Cloud, Users, CalendarOff } from "lucide-react";
 import { ExportDialog } from "@/components/export-dialog";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useDirtyState } from "@/hooks/useDirtyState";
@@ -69,6 +70,7 @@ export function CalendarSettingsSheet({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showShareManagement, setShowShareManagement] = useState(false);
+  const [showAbsenceManagement, setShowAbsenceManagement] = useState(false);
   const initialFormStateRef = useRef<FormState | null>(null);
 
   // Initialize form state reference when opening
@@ -229,6 +231,23 @@ export function CalendarSettingsSheet({
               </div>
             )}
 
+            {/* Absence & Vacation Management */}
+            {canManage && (
+              <div className="pt-4 mt-4 border-t border-border/50">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAbsenceManagement(true)}
+                  className="w-full h-11 border-primary/30 hover:bg-primary/10 hover:border-primary/50 text-foreground"
+                >
+                  <CalendarOff className="h-4 w-4 mr-2 text-primary" />
+                  {t("absence.calendarAbsenceManagement", {
+                    default: "Manage Absences & Vacations",
+                  })}
+                </Button>
+              </div>
+            )}
+
             {/* Delete Section */}
             {canDelete && (
               <div className="pt-4 mt-4 border-t border-border/50">
@@ -337,6 +356,13 @@ export function CalendarSettingsSheet({
         calendarName={calendarName}
         calendarGuestPermission={calendarGuestPermission}
         canManageShares={canShare}
+      />
+
+      <CalendarAbsencesSheet
+        open={showAbsenceManagement}
+        onOpenChange={setShowAbsenceManagement}
+        calendarId={calendarId}
+        calendarName={calendarName}
       />
     </>
   );

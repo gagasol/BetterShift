@@ -22,6 +22,7 @@ import {
   Plus,
   Bell,
   ExternalLink,
+  CalendarOff,
 } from "lucide-react";
 import { ShiftPreset } from "@/lib/db/schema";
 import { useVersionUpdateCheck } from "@/hooks/useVersionUpdate";
@@ -47,6 +48,7 @@ interface AppHeaderProps {
   onManualShiftCreation: () => void;
   onMobileCalendarDialogChange: (open: boolean) => void;
   onViewSettingsClick: () => void;
+  onReportAbsence?: () => void;
   presetsLoading?: boolean;
   hidePresetHeader?: boolean;
   onHidePresetHeaderChange?: (hide: boolean) => void;
@@ -70,6 +72,7 @@ export function AppHeader({
   onManualShiftCreation,
   onMobileCalendarDialogChange,
   onViewSettingsClick,
+  onReportAbsence,
   presetsLoading = false,
   hidePresetHeader = false,
   onHidePresetHeaderChange,
@@ -129,6 +132,22 @@ export function AppHeader({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 }}
               >
+                {/* Report Absence Button (Desktop - on top left to the calendar name/selector) */}
+                {onReportAbsence && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onReportAbsence}
+                    className="h-9 px-2.5 sm:px-3 text-xs font-medium border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 flex items-center gap-1.5 shrink-0 shadow-sm transition-all active:scale-95"
+                    title={t("absence.reportAbsenceButton", { default: "Report absence" })}
+                  >
+                    <CalendarOff className="h-4 w-4" />
+                    <span>
+                      {t("absence.reportAbsenceButton", { default: "Report absence" })}
+                    </span>
+                  </Button>
+                )}
+
                 {/* Calendar Selector - Desktop */}
                 <div className="flex items-center gap-2 min-w-0 flex-1 max-w-md">
                   <div
@@ -216,7 +235,7 @@ export function AppHeader({
               </motion.div>
             )}
 
-            {/* Mobile: Add Button + Calendar Card + User Menu (Logo hidden) */}
+            {/* Mobile: Add Button + Report Absence + Calendar Card + User Menu (Logo hidden) */}
             <div className="sm:hidden flex items-center gap-2">
               {/* Mobile Add Shift Button - Left */}
               {selectedCalendar && (
@@ -233,6 +252,26 @@ export function AppHeader({
                     className="h-10 w-10 rounded-full bg-black dark:bg-white backdrop-blur-sm border border-border/50 hover:bg-accent transition-all shadow-sm"
                   >
                     <Plus className="h-5 w-5 dark:text-black text-white" />
+                  </Button>
+                </motion.div>
+              )}
+
+              {/* Mobile Report Absence Button */}
+              {onReportAbsence && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.25, type: "spring", stiffness: 200 }}
+                  className="shrink-0"
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onReportAbsence}
+                    className="h-10 w-10 rounded-full bg-muted/40 backdrop-blur-sm border border-border/50 hover:bg-accent transition-all shadow-sm text-primary"
+                    title={t("absence.reportAbsenceButton", { default: "Report absence" })}
+                  >
+                    <CalendarOff className="h-5 w-5" />
                   </Button>
                 </motion.div>
               )}

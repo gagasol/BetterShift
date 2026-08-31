@@ -6,8 +6,9 @@ import { ColorPicker } from "@/components/ui/color-picker";
 import { ShiftFormData } from "@/components/shift-sheet";
 import { PRESET_COLORS } from "@/lib/constants";
 import { CalendarMember } from "@/hooks/useCalendarMembers";
-import { CalendarLocation } from "@/lib/types";
-import { MapPin } from "lucide-react";
+import { CalendarLocation, Absence } from "@/lib/types";
+import { MapPin, AlertCircle, CalendarOff } from "lucide-react";
+import { isDateInAbsence } from "@/lib/absence-utils";
 
 interface EmployeeShiftFormFieldsProps {
   formData: ShiftFormData;
@@ -17,6 +18,7 @@ interface EmployeeShiftFormFieldsProps {
   readOnly?: boolean;
   members?: CalendarMember[];
   membersLoading?: boolean;
+  absences?: Absence[];
 }
 
 export function EmployeeShiftFormFields({
@@ -25,12 +27,42 @@ export function EmployeeShiftFormFields({
   locations = [],
   onBlur,
   readOnly = false,
-  members,
+  members = [],
   membersLoading = false,
+  absences = [],
 }: EmployeeShiftFormFieldsProps) {
   const t = useTranslations();
 
   const selectedLoc = locations.find((l) => l.id === formData.locationId) || locations[0];
+
+  // Determine absences active on the selected shift date
+  const activeAbsencesOnDate = (absences || []).filter((absence) =>
+    isDateInAbsence(formData.date, absence)
+  );
+
+  // Group members into available and absent
+  const availableMembers: CalendarMember[] = [];
+  const absentMembers: { member: CalendarMember; absence: Absence }[] = [];
+
+  members.forEach((member) => {
+    const memberName = (member.name || "").trim().toLowerCase();
+    const absence = activeAbsencesOnDate.find((a) => {
+      if (a.userId && a.userId === member.id) return true;
+      if (a.userName && a.userName.trim().toLowerCase() === memberName) return true;
+      return false;
+    });
+
+    if (absence) {
+      absentMembers.push({ member, absence });
+    } else {
+      availableMembers.push(member);
+    }
+  });
+
+  // Check if currently selected employee is absent
+  const selectedIsAbsent = absentMembers.find(
+    (item) => (item.member.name || "") === formData.title
+  );
 
   return (
     <div className="space-y-5">
@@ -75,22 +107,32 @@ export function EmployeeShiftFormFields({
 
       {/* Employee Selection */}
       <div className="space-y-2.5">
-        <Label htmlFor="employee" className="text-sm font-medium flex items-center gap-2">
-          <div className="w-1 h-4 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
-          {t("common.employee")}
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="employee" className="text-sm font-medium flex items-center gap-2">
+            <div className="w-1 h-4 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
+            {t("common.employee")}
+          </Label>
+          {absentMembers.length > 0 && (
+            <span className="text-xs text-rose-500 font-medium flex items-center gap-1">
+              <CalendarOff className="w-3 h-3" />
+              {absentMembers.length} {t("absence.absentCount", { default: "absent today" })}
+            </span>
+          )}
+        </div>
+
         <select
           id="employee"
           value={formData.title}
           disabled={readOnly || membersLoading}
-          className="flex h-11 w-full rounded-md border border-border/50 bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus:border-primary/50 focus:ring-primary/20"
+          className={`flex h-11 w-full rounded-md border bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus:ring-primary/20 ${
+            selectedIsAbsent
+              ? "border-rose-500/60 text-rose-600 dark:text-rose-400"
+              : "border-border/50 focus:border-primary/50"
+          }`}
           onChange={(e) => {
-            const selectedIndex = e.target.selectedIndex;
-            const selectedName = e.target.options[selectedIndex]?.text ?? "";
-            const selectedValue = e.target.value;
-
-            if (selectedValue !== "") {
-              onFormDataChange({ ...formData, title: selectedName });
+            const selectedVal = e.target.value;
+            if (selectedVal !== "") {
+              onFormDataChange({ ...formData, title: selectedVal });
             }
           }}
           onBlur={onBlur}
@@ -101,13 +143,48 @@ export function EmployeeShiftFormFields({
               Loading...
             </option>
           ) : (
-            members?.map((member) => (
-              <option key={member.id} value={member.name || ""}>
-                {member.name || `Member (${member.id.slice(0, 6)})`}
-              </option>
-            ))
+            <>
+              {/* Available Employees (Top) */}
+              {availableMembers.map((member) => (
+                <option key={member.id} value={member.name || ""}>
+                  {member.name || `Member (${member.id.slice(0, 6)})`}
+                </option>
+              ))}
+
+              {/* Absent Employees (Bottom, Colored Red) */}
+              {absentMembers.length > 0 && (
+                <optgroup label={`── ${t("absence.absentEmployees", { default: "Absent / On Leave" })} ──`}>
+                  {absentMembers.map(({ member, absence }) => (
+                    <option
+                      key={member.id}
+                      value={member.name || ""}
+                      style={{ color: "#ef4444", fontWeight: 600 }}
+                      className="text-red-500 font-semibold"
+                    >
+                      ⚠️ {member.name || `Member (${member.id.slice(0, 6)})`} ({absence.type})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </>
           )}
         </select>
+
+        {/* Warning if selected employee is absent */}
+        {selectedIsAbsent && (
+          <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-start gap-2 text-xs text-rose-600 dark:text-rose-400 animate-in fade-in duration-200">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold">{selectedIsAbsent.member.name}</span>{" "}
+              {t("absence.warningEmployeeAbsent", {
+                default: "is reported absent on this date",
+              })}{" "}
+              ({selectedIsAbsent.absence.type}
+              {selectedIsAbsent.absence.isAllDay ? " - All day" : ` ${selectedIsAbsent.absence.startTime}-${selectedIsAbsent.absence.endTime}`})
+              {selectedIsAbsent.absence.reason && `: "${selectedIsAbsent.absence.reason}"`}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Date */}

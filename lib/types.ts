@@ -1,6 +1,27 @@
 // Re-export types from Drizzle schema
-export type { Calendar, Shift, ExternalSync, CalendarLocation } from "./db/schema";
-import type { CalendarLocation } from "./db/schema";
+export type {
+  Calendar,
+  Shift,
+  ExternalSync,
+  CalendarLocation,
+  Absence,
+  NewAbsence,
+} from "./db/schema";
+import type { CalendarLocation, Absence } from "./db/schema";
+
+export interface AbsenceWithDetails extends Absence {
+  calendar?: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
+  user?: {
+    id: string;
+    name: string | null;
+    email: string;
+    image?: string | null;
+  } | null;
+}
 
 export interface CalendarWithCount {
   id: string;

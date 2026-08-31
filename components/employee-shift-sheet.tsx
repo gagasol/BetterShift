@@ -9,6 +9,7 @@ import { ReadOnlyBanner } from "@/components/read-only-banner";
 import { useCalendarPermission } from "@/hooks/useCalendarPermission";
 import { useCalendarMembers } from "@/hooks/useCalendarMembers";
 import { useCalendarLocations } from "@/hooks/useCalendarLocations";
+import { useCalendarAbsences } from "@/hooks/useAbsences";
 import { formatDateToLocal } from "@/lib/date-utils";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ export function EmployeeShiftSheet({
 
   const { members, isLoading: membersLoading } = useCalendarMembers(calendarId);
   const { locations } = useCalendarLocations(calendarId || null);
+  const { absences = [] } = useCalendarAbsences(calendarId);
   const isReadOnly = readOnly || !permission.canEdit;
 
   const defaultLocId =
@@ -169,6 +171,7 @@ export function EmployeeShiftSheet({
           readOnly={isReadOnly}
           members={members}
           membersLoading={membersLoading}
+          absences={absences}
         />
 
         {/* Delete Shift Button */}

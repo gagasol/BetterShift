@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, Users, FileText, Shield } from "lucide-react";
+import { User, LogOut, Users, FileText, Shield, CalendarOff } from "lucide-react";
 import { toast } from "sonner";
 import { CalendarDiscoverySheet } from "@/components/calendar-discovery-sheet";
 import { useIsAdmin } from "@/hooks/useAdminAccess";
@@ -102,6 +102,10 @@ export function UserMenu() {
         <DropdownMenuItem onClick={() => router.replace("/profile")}>
           <User className="mr-2 h-4 w-4" />
           {t("auth.profile")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/profile/absences")}>
+          <CalendarOff className="mr-2 h-4 w-4" />
+          {t("absence.absenceTitle", { default: "Absence" })}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.replace("/profile/activity")}>
           <FileText className="mr-2 h-4 w-4" />
