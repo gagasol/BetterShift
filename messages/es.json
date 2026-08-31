@@ -136,7 +136,8 @@
       "noUsersFound": "No se encontraron usuarios"
     },
     "employee": "Empleado",
-    "select_employee": "Seleccionar empleado"
+    "select_employee": "Seleccionar empleado",
+    "conflict": "Conflicto detectado"
   },
   "validation": {
     "fileRequired": "Por favor, selecciona un archivo",
@@ -915,6 +916,8 @@
       "fri": "Vie",
       "sat": "Sáb",
       "sun": "Dom"
-    }
+    },
+    "conflictAlreadyInList": "Esta fecha ({date}) ya está añadida a la lista",
+    "conflictAlreadyAbsent": "El empleado ya está registrado como ausente este día ({date})"
   }
 }

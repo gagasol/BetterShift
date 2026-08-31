@@ -136,7 +136,8 @@
       "noUsersFound": "Nebyli nalezeni žádní uživatelé"
     },
     "employee": "Zaměstnanec",
-    "select_employee": "Vyberte zaměstnance"
+    "select_employee": "Vyberte zaměstnance",
+    "conflict": "Zjištěn konflikt"
   },
   "validation": {
     "fileRequired": "Vyberte prosím soubor",
@@ -915,6 +916,8 @@
       "fri": "Pá",
       "sat": "So",
       "sun": "Ne"
-    }
+    },
+    "conflictAlreadyInList": "Toto datum ({date}) je již přidáno v seznamu",
+    "conflictAlreadyAbsent": "Zaměstnanec je v tento den ({date}) již nahlášen jako nepřítomný"
   }
 }

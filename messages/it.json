@@ -136,7 +136,8 @@
       "noUsersFound": "Nessun utente trovato"
     },
     "employee": "Dipendente",
-    "select_employee": "Seleziona dipendente"
+    "select_employee": "Seleziona dipendente",
+    "conflict": "Conflitto rilevato"
   },
   "validation": {
     "fileRequired": "Seleziona un file",
@@ -915,6 +916,8 @@
       "fri": "Ven",
       "sat": "Sab",
       "sun": "Dom"
-    }
+    },
+    "conflictAlreadyInList": "Questa data ({date}) è già aggiunta all'elenco",
+    "conflictAlreadyAbsent": "Il dipendente è già registrato come assente in questo giorno ({date})"
   }
 }

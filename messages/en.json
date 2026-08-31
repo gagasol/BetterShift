@@ -136,7 +136,8 @@
     },
     "empty": {
       "noUsersFound": "No users found"
-    }
+    },
+    "conflict": "Conflict detected"
   },
   "validation": {
     "fileRequired": "Please select a file",
@@ -915,6 +916,8 @@
       "fri": "Fri",
       "sat": "Sat",
       "sun": "Sun"
-    }
+    },
+    "conflictAlreadyInList": "This date ({date}) is already added to the list",
+    "conflictAlreadyAbsent": "Employee is already reported as absent on this day ({date})"
   }
 }

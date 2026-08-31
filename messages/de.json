@@ -136,7 +136,8 @@
     },
     "empty": {
       "noUsersFound": "Keine Benutzer gefunden"
-    }
+    },
+    "conflict": "Konflikt erkannt"
   },
   "validation": {
     "fileRequired": "Bitte wähle eine Datei aus",
@@ -915,6 +916,8 @@
       "fri": "Fr",
       "sat": "Sa",
       "sun": "So"
-    }
+    },
+    "conflictAlreadyInList": "Dieses Datum ({date}) ist bereits in der Liste",
+    "conflictAlreadyAbsent": "Mitarbeiter ist an diesem Tag ({date}) bereits als abwesend gemeldet"
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import {
@@ -16,10 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCalendarMembers } from "@/hooks/useCalendarMembers";
-import { useAbsenceMutations } from "@/hooks/useAbsences";
+import { useAbsenceMutations, useCalendarAbsences } from "@/hooks/useAbsences";
 import { useAuth } from "@/hooks/useAuth";
 import { useCalendarPermission } from "@/hooks/useCalendarPermission";
-import { formatDateToLocal, formatDateToDDMMYYYY } from "@/lib/date-utils";
+import { formatDateToLocal, formatDateToDDMMYYYY, parseLocalDate } from "@/lib/date-utils";
+import { isDateInAbsence } from "@/lib/absence-utils";
 import { CalendarWithCount, Absence } from "@/lib/types";
 import {
   CalendarOff,
@@ -28,6 +29,7 @@ import {
   Calendar as CalendarIcon,
   User,
   Repeat,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,6 +62,7 @@ export function ReportAbsenceSheet({
   const t = useTranslations();
   const { user } = useAuth();
   const { members = [], isLoading: membersLoading } = useCalendarMembers(calendarId);
+  const { absences: calendarAbsences = [] } = useCalendarAbsences(calendarId);
   const { createAbsence, updateAbsence, isCreating, isUpdating } = useAbsenceMutations();
 
   const isEditing = !!editAbsence;
@@ -76,6 +79,14 @@ export function ReportAbsenceSheet({
   const [absenceType, setAbsenceType] = useState<string>("absence");
   const [reason, setReason] = useState<string>("");
   const [isRecurring, setIsRecurring] = useState<boolean>(false);
+
+  // Target user info for checks
+  const effectiveUserId = canReportOthers
+    ? selectedUserId || user?.id || null
+    : user?.id || null;
+  const effectiveUserName = canReportOthers
+    ? userName || members.find((m) => m.id === selectedUserId)?.name || user?.name || "Employee"
+    : user?.name || "Employee";
 
   // Recurring state
   const [recurringStartDate, setRecurringStartDate] = useState<string>(() =>
@@ -206,6 +217,136 @@ export function ReportAbsenceSheet({
     }
   };
 
+  // Check if current non-recurring inputs conflict with staged list or existing database absences (including recurring)
+  const entryConflict = useMemo(() => {
+    if (isRecurring) return null;
+    if (!nonRecStartDate || !nonRecEndDate) return null;
+
+    if (nonRecStartDate > nonRecEndDate) {
+      return {
+        type: "invalid_range" as const,
+        message: t("absence.endBeforeStart", { default: "End date cannot be before start date" }),
+      };
+    }
+
+    // Generate list of all individual days in this range
+    const dates: string[] = [];
+    try {
+      const start = parseLocalDate(nonRecStartDate);
+      const end = parseLocalDate(nonRecEndDate);
+      const curr = new Date(start);
+      while (curr <= end) {
+        dates.push(formatDateToLocal(curr));
+        curr.setDate(curr.getDate() + 1);
+      }
+    } catch {
+      return null;
+    }
+
+    // 1. Check if any day is already in staged periodsList
+    for (const date of dates) {
+      const inList = periodsList.find((p) => date >= p.startDate && date <= p.endDate);
+      if (inList) {
+        return {
+          type: "in_list" as const,
+          date,
+          message: t("absence.conflictAlreadyInList", {
+            date: formatDateToDDMMYYYY(date),
+            default: `This date (${formatDateToDDMMYYYY(date)}) is already added to the list`,
+          }),
+        };
+      }
+    }
+
+    // 2. Check if user is already reported absent on any day in this range (including recurring absences)
+    const normalizedTargetName = effectiveUserName.trim().toLowerCase();
+    const relevantAbsences = calendarAbsences.filter((a) => {
+      if (isEditing && editAbsence && a.id === editAbsence.id) return false;
+      if (effectiveUserId && a.userId && a.userId === effectiveUserId) return true;
+      if (normalizedTargetName && a.userName && a.userName.trim().toLowerCase() === normalizedTargetName) return true;
+      return false;
+    });
+
+    for (const date of dates) {
+      for (const absence of relevantAbsences) {
+        if (isDateInAbsence(date, absence)) {
+          return {
+            type: "already_absent" as const,
+            date,
+            absence,
+            message: `${t("absence.conflictAlreadyAbsent", {
+              date: formatDateToDDMMYYYY(date),
+              default: `Employee is already reported as absent on this day (${formatDateToDDMMYYYY(date)})`,
+            })}${absence.isRecurring ? ` (${t("absence.recurring", { default: "Recurring" })})` : ""}`,
+          };
+        }
+      }
+    }
+
+    return null;
+  }, [
+    isRecurring,
+    nonRecStartDate,
+    nonRecEndDate,
+    periodsList,
+    effectiveUserName,
+    effectiveUserId,
+    calendarAbsences,
+    isEditing,
+    editAbsence,
+    t,
+  ]);
+
+  // Check if an item in the periods list has a conflict with existing database absences
+  const getPeriodConflict = (item: NonRecurringPeriod) => {
+    if (isRecurring || !item.startDate || !item.endDate) return null;
+    if (item.startDate > item.endDate) {
+      return {
+        type: "invalid_range" as const,
+        message: t("absence.endBeforeStart", { default: "End date cannot be before start date" }),
+      };
+    }
+
+    const dates: string[] = [];
+    try {
+      const start = parseLocalDate(item.startDate);
+      const end = parseLocalDate(item.endDate);
+      const curr = new Date(start);
+      while (curr <= end) {
+        dates.push(formatDateToLocal(curr));
+        curr.setDate(curr.getDate() + 1);
+      }
+    } catch {
+      return null;
+    }
+
+    const normalizedTargetName = effectiveUserName.trim().toLowerCase();
+    const relevantAbsences = calendarAbsences.filter((a) => {
+      if (isEditing && editAbsence && a.id === editAbsence.id) return false;
+      if (effectiveUserId && a.userId && a.userId === effectiveUserId) return true;
+      if (normalizedTargetName && a.userName && a.userName.trim().toLowerCase() === normalizedTargetName) return true;
+      return false;
+    });
+
+    for (const date of dates) {
+      for (const absence of relevantAbsences) {
+        if (isDateInAbsence(date, absence)) {
+          return {
+            type: "already_absent" as const,
+            date,
+            absence,
+            message: `${t("absence.conflictAlreadyAbsent", {
+              date: formatDateToDDMMYYYY(date),
+              default: `Employee is already reported as absent on this day (${formatDateToDDMMYYYY(date)})`,
+            })}${absence.isRecurring ? ` (${t("absence.recurring", { default: "Recurring" })})` : ""}`,
+          };
+        }
+      }
+    }
+
+    return null;
+  };
+
   // Add non-recurring period to editable list (sorted ascending by date)
   const handleAddPeriod = () => {
     if (!nonRecStartDate || !nonRecEndDate) {
@@ -213,8 +354,8 @@ export function ReportAbsenceSheet({
       return;
     }
 
-    if (nonRecStartDate > nonRecEndDate) {
-      toast.error(t("absence.endBeforeStart", { default: "End date cannot be before start date" }));
+    if (entryConflict) {
+      toast.error(entryConflict.message);
       return;
     }
 
@@ -300,13 +441,22 @@ export function ReportAbsenceSheet({
             },
           });
         } else {
+          // If editing non-recurring, check conflict
           const firstPeriod = periodsList[0] || {
+            id: "first",
             startDate: nonRecStartDate,
             endDate: nonRecEndDate,
             isAllDay: nonRecAllDay,
             startTime: nonRecStartTime,
             endTime: nonRecEndTime,
           };
+
+          const conflict = periodsList.length > 0 ? getPeriodConflict(firstPeriod) : entryConflict;
+          if (conflict) {
+            toast.error(conflict.message);
+            return;
+          }
+
           await updateAbsence({
             id: editAbsence.id,
             data: {
@@ -352,6 +502,21 @@ export function ReportAbsenceSheet({
             recurringDays: selectedWeekdays,
           });
         } else {
+          // Check for conflicts before creating
+          if (periodsList.length === 0) {
+            if (entryConflict) {
+              toast.error(entryConflict.message);
+              return;
+            }
+          } else {
+            const conflictingPeriod = periodsList.find((p) => !!getPeriodConflict(p));
+            if (conflictingPeriod) {
+              const conflict = getPeriodConflict(conflictingPeriod);
+              toast.error(conflict?.message || t("common.conflict", { default: "Conflict detected" }));
+              return;
+            }
+          }
+
           // If periods list is empty, use current non-recurring inputs
           const finalPeriods =
             periodsList.length > 0
@@ -709,128 +874,178 @@ export function ReportAbsenceSheet({
                   </div>
                 ) : (
                   <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
-                    {periodsList.map((item, idx) => (
-                      <div
-                        key={item.id}
-                        className="p-3 rounded-lg border border-border/60 bg-muted/20 space-y-3 transition-all hover:border-primary/40"
-                      >
-                        <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-                          <span>
-                            {t("absence.periodNumber", { default: "Period" })} #{idx + 1}
-                            {item.startDate && (
-                              <span className="ml-2 font-normal text-foreground">
-                                ({formatDateToDDMMYYYY(item.startDate)}
-                                {item.startDate !== item.endDate && ` - ${formatDateToDDMMYYYY(item.endDate)}`})
-                              </span>
-                            )}
-                          </span>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleRemovePeriod(item.id)}
-                            className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                            title={t("common.delete")}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-
-                        {/* From and To date fields in row */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                          <div>
-                            <Label className="text-[11px] text-muted-foreground">
-                              {t("absence.fromDate", { default: "From" })}
-                            </Label>
-                            <Input
-                              type="date"
-                              value={item.startDate}
-                              onChange={(e) =>
-                                handleUpdatePeriod(item.id, "startDate", e.target.value)
-                              }
-                              className="h-9 text-xs bg-background"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-[11px] text-muted-foreground">
-                              {t("absence.toDate", { default: "To" })}
-                            </Label>
-                            <Input
-                              type="date"
-                              value={item.endDate}
-                              onChange={(e) =>
-                                handleUpdatePeriod(item.id, "endDate", e.target.value)
-                              }
-                              className="h-9 text-xs bg-background"
-                            />
-                          </div>
-                        </div>
-
-                        {/* All Day & Times in row */}
-                        <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-border/30">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`item-allday-${item.id}`}
-                              checked={item.isAllDay}
-                              onCheckedChange={(checked) =>
-                                handleUpdatePeriod(item.id, "isAllDay", Boolean(checked))
-                              }
-                            />
-                            <label
-                              htmlFor={`item-allday-${item.id}`}
-                              className="text-xs cursor-pointer select-none"
+                    {periodsList.map((item, idx) => {
+                      const itemConflict = getPeriodConflict(item);
+                      return (
+                        <div
+                          key={item.id}
+                          className={`p-3 rounded-lg border space-y-3 transition-all ${
+                            itemConflict
+                              ? "border-destructive/60 bg-destructive/5 ring-1 ring-destructive/30"
+                              : "border-border/60 bg-muted/20 hover:border-primary/40"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-xs font-medium">
+                            <span className={itemConflict ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                              {t("absence.periodNumber", { default: "Period" })} #{idx + 1}
+                              {item.startDate && (
+                                <span className="ml-2 font-normal text-foreground">
+                                  ({formatDateToDDMMYYYY(item.startDate)}
+                                  {item.startDate !== item.endDate && ` - ${formatDateToDDMMYYYY(item.endDate)}`})
+                                </span>
+                              )}
+                            </span>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleRemovePeriod(item.id)}
+                              className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                              title={t("common.delete")}
                             >
-                              {t("shift.allDay")}
-                            </label>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           </div>
 
-                          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                            <Input
-                              type="time"
-                              value={item.startTime}
-                              onChange={(e) =>
-                                handleUpdatePeriod(item.id, "startTime", e.target.value)
-                              }
-                              disabled={item.isAllDay}
-                              className={`h-8 text-xs flex-1 ${
-                                item.isAllDay
-                                  ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                                  : "bg-background"
-                              }`}
-                            />
-                            <span className="text-xs text-muted-foreground">-</span>
-                            <Input
-                              type="time"
-                              value={item.endTime}
-                              onChange={(e) =>
-                                handleUpdatePeriod(item.id, "endTime", e.target.value)
-                              }
-                              disabled={item.isAllDay}
-                              className={`h-8 text-xs flex-1 ${
-                                item.isAllDay
-                                  ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                                  : "bg-background"
-                              }`}
-                            />
+                          {/* Conflict warning for item */}
+                          {itemConflict && (
+                            <div className="flex items-start gap-1.5 p-2 rounded bg-destructive/10 border border-destructive/20 text-[11px] text-destructive">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                              <span className="font-medium">{itemConflict.message}</span>
+                            </div>
+                          )}
+
+                          {/* From and To date fields in row */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div>
+                              <Label className="text-[11px] text-muted-foreground">
+                                {t("absence.fromDate", { default: "From" })}
+                              </Label>
+                              <Input
+                                type="date"
+                                value={item.startDate}
+                                onChange={(e) =>
+                                  handleUpdatePeriod(item.id, "startDate", e.target.value)
+                                }
+                                className={`h-9 text-xs ${
+                                  itemConflict
+                                    ? "border-destructive/60 bg-destructive/5 text-destructive"
+                                    : "bg-background"
+                                }`}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-[11px] text-muted-foreground">
+                                {t("absence.toDate", { default: "To" })}
+                              </Label>
+                              <Input
+                                type="date"
+                                value={item.endDate}
+                                onChange={(e) =>
+                                  handleUpdatePeriod(item.id, "endDate", e.target.value)
+                                }
+                                className={`h-9 text-xs ${
+                                  itemConflict
+                                    ? "border-destructive/60 bg-destructive/5 text-destructive"
+                                    : "bg-background"
+                                }`}
+                              />
+                            </div>
+                          </div>
+
+                          {/* All Day & Times in row */}
+                          <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-border/30">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`item-allday-${item.id}`}
+                                checked={item.isAllDay}
+                                onCheckedChange={(checked) =>
+                                  handleUpdatePeriod(item.id, "isAllDay", Boolean(checked))
+                                }
+                              />
+                              <label
+                                htmlFor={`item-allday-${item.id}`}
+                                className="text-xs cursor-pointer select-none"
+                              >
+                                {t("shift.allDay")}
+                              </label>
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                              <Input
+                                type="time"
+                                value={item.startTime}
+                                onChange={(e) =>
+                                  handleUpdatePeriod(item.id, "startTime", e.target.value)
+                                }
+                                disabled={item.isAllDay}
+                                className={`h-8 text-xs flex-1 ${
+                                  item.isAllDay
+                                    ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                                    : "bg-background"
+                                }`}
+                              />
+                              <span className="text-xs text-muted-foreground">-</span>
+                              <Input
+                                type="time"
+                                value={item.endTime}
+                                onChange={(e) =>
+                                  handleUpdatePeriod(item.id, "endTime", e.target.value)
+                                }
+                                disabled={item.isAllDay}
+                                className={`h-8 text-xs flex-1 ${
+                                  item.isAllDay
+                                    ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                                    : "bg-background"
+                                }`}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
               {/* Add Period Section */}
-              <div className="space-y-4 p-4 rounded-xl border border-border/60 bg-muted/10">
-                <div className="text-xs font-semibold text-foreground flex items-center gap-2">
-                  <Plus className="w-3.5 h-3.5 text-primary" />
-                  {t("absence.addNewPeriod", { default: "Add a Date / Period to List" })}
+              <div
+                className={`space-y-4 p-4 rounded-xl border transition-all ${
+                  entryConflict
+                    ? "border-destructive/70 bg-destructive/5 ring-1 ring-destructive/40 shadow-sm shadow-destructive/10"
+                    : "border-border/60 bg-muted/10"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div
+                    className={`text-xs font-semibold flex items-center gap-2 ${
+                      entryConflict ? "text-destructive" : "text-foreground"
+                    }`}
+                  >
+                    <Plus
+                      className={`w-3.5 h-3.5 ${
+                        entryConflict ? "text-destructive" : "text-primary"
+                      }`}
+                    />
+                    {t("absence.addNewPeriod", { default: "Add a Date / Period to List" })}
+                  </div>
+                  {entryConflict && (
+                    <span className="text-[11px] font-medium text-destructive flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      {t("common.conflict", { default: "Conflict detected" })}
+                    </span>
+                  )}
                 </div>
 
                 {/* From and To Date */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="nonrec-from-date" className="text-xs font-medium">
+                    <Label
+                      htmlFor="nonrec-from-date"
+                      className={`text-xs font-medium ${
+                        entryConflict ? "text-destructive" : ""
+                      }`}
+                    >
                       {t("absence.fromDate", { default: "From Date" })}
                     </Label>
                     <Input
@@ -838,11 +1053,20 @@ export function ReportAbsenceSheet({
                       type="date"
                       value={nonRecStartDate}
                       onChange={(e) => handleFromDateChange(e.target.value)}
-                      className="h-10 border-border/50 bg-background"
+                      className={`h-10 transition-colors ${
+                        entryConflict
+                          ? "border-destructive focus-visible:ring-destructive bg-destructive/10 text-destructive font-medium"
+                          : "border-border/50 bg-background"
+                      }`}
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="nonrec-to-date" className="text-xs font-medium">
+                    <Label
+                      htmlFor="nonrec-to-date"
+                      className={`text-xs font-medium ${
+                        entryConflict ? "text-destructive" : ""
+                      }`}
+                    >
                       {t("absence.toDate", { default: "To Date" })}
                     </Label>
                     <Input
@@ -853,10 +1077,28 @@ export function ReportAbsenceSheet({
                         setToFieldManuallyModified(true);
                         setNonRecEndDate(e.target.value);
                       }}
-                      className="h-10 border-border/50 bg-background"
+                      className={`h-10 transition-colors ${
+                        entryConflict
+                          ? "border-destructive focus-visible:ring-destructive bg-destructive/10 text-destructive font-medium"
+                          : "border-border/50 bg-background"
+                      }`}
                     />
                   </div>
                 </div>
+
+                {/* Conflict Warning Banner */}
+                {entryConflict && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-start gap-2 p-2.5 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-destructive" />
+                    <span className="font-medium leading-relaxed">
+                      {entryConflict.message}
+                    </span>
+                  </motion.div>
+                )}
 
                 {/* Time & All Day */}
                 <div className="space-y-3 pt-1 border-t border-border/40">
@@ -932,7 +1174,12 @@ export function ReportAbsenceSheet({
               type="button"
               variant="outline"
               onClick={handleAddPeriod}
-              className="w-full h-10 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 font-medium transition-colors"
+              disabled={!!entryConflict || !nonRecStartDate || !nonRecEndDate}
+              className={`w-full h-10 font-medium transition-all ${
+                entryConflict
+                  ? "border-destructive/40 text-destructive/50 bg-destructive/5 cursor-not-allowed opacity-60"
+                  : "border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+              }`}
             >
               <Plus className="w-4 h-4 mr-2" />
               {t("absence.addPeriodToList", { default: "Add Period to List" })}
