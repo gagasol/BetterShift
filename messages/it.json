@@ -134,7 +134,9 @@
     },
     "empty": {
       "noUsersFound": "Nessun utente trovato"
-    }
+    },
+    "employee": "Dipendente",
+    "select_employee": "Seleziona dipendente"
   },
   "validation": {
     "fileRequired": "Seleziona un file",

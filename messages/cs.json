@@ -134,7 +134,9 @@
     },
     "empty": {
       "noUsersFound": "Nebyli nalezeni žádní uživatelé"
-    }
+    },
+    "employee": "Zaměstnanec",
+    "select_employee": "Vyberte zaměstnance"
   },
   "validation": {
     "fileRequired": "Vyberte prosím soubor",

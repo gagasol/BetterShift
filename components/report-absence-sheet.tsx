@@ -918,23 +918,27 @@ export function ReportAbsenceSheet({
                   </div>
                 </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddPeriod}
-                  className="w-full h-9 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
-                >
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  {t("absence.addPeriodToList", { default: "Add Period to List" })}
-                </Button>
+                {/* Static Add Button inside form is moved to bottom */}
               </div>
             </motion.div>
           )}
         </form>
 
         {/* Sheet Footer */}
-        <SheetFooter className="p-4 sm:p-6 border-t border-border/50 bg-muted/20 shrink-0">
+        <SheetFooter className="p-4 sm:p-6 border-t border-border/50 bg-muted/20 shrink-0 space-y-3">
+          {/* Static Add to List Button above Cancel and Submit for Non-recurring */}
+          {!isRecurring && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAddPeriod}
+              className="w-full h-10 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {t("absence.addPeriodToList", { default: "Add Period to List" })}
+            </Button>
+          )}
+
           <div className="flex items-center gap-3 w-full">
             <Button
               type="button"
