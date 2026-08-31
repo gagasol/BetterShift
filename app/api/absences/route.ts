@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { absences, calendars, user as userTable } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { getSessionUser } from "@/lib/auth/sessions";
 import { canViewCalendar, canEditCalendar } from "@/lib/auth/permissions";
 
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         .from(absences)
         .leftJoin(calendars, eq(absences.calendarId, calendars.id))
         .where(eq(absences.userId, sessionUser.id))
-        .orderBy(desc(absences.startDate));
+        .orderBy(asc(absences.startDate));
 
       const formatted = results.map((r) => ({
         ...r.absence,
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
         .leftJoin(calendars, eq(absences.calendarId, calendars.id))
         .leftJoin(userTable, eq(absences.userId, userTable.id))
         .where(eq(absences.calendarId, calendarId))
-        .orderBy(desc(absences.startDate));
+        .orderBy(asc(absences.startDate));
 
       const formatted = results.map((r) => ({
         ...r.absence,
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
         .from(absences)
         .leftJoin(calendars, eq(absences.calendarId, calendars.id))
         .where(eq(absences.userId, sessionUser.id))
-        .orderBy(desc(absences.startDate));
+        .orderBy(asc(absences.startDate));
 
       const formatted = results.map((r) => ({
         ...r.absence,
@@ -160,12 +160,18 @@ export async function POST(request: NextRequest) {
       let finalUserId = sessionUser?.id || null;
       let finalUserName = sessionUser?.name || customUserName || "Employee";
 
-      // If manager/admin explicitly specified an employee
-      if (customUserName && (hasWriteAccess || !sessionUser)) {
-        finalUserName = customUserName;
+      // Only admins / editors can report absence for someone else
+      if (hasWriteAccess || !sessionUser) {
+        if (customUserName) {
+          finalUserName = customUserName;
+        }
         if (customUserId) {
           finalUserId = customUserId;
         }
+      } else {
+        // Regular user: can ONLY report for themselves
+        finalUserId = sessionUser.id;
+        finalUserName = sessionUser.name || "Employee";
       }
 
       const [newAbsence] = await db

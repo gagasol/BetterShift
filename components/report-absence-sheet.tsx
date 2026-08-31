@@ -18,7 +18,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useCalendarMembers } from "@/hooks/useCalendarMembers";
 import { useAbsenceMutations } from "@/hooks/useAbsences";
 import { useAuth } from "@/hooks/useAuth";
-import { formatDateToLocal } from "@/lib/date-utils";
+import { useCalendarPermission } from "@/hooks/useCalendarPermission";
+import { formatDateToLocal, formatDateToDDMMYYYY } from "@/lib/date-utils";
 import { CalendarWithCount, Absence } from "@/lib/types";
 import {
   CalendarOff,
@@ -65,11 +66,14 @@ export function ReportAbsenceSheet({
 
   // Selected calendar if customizable
   const [selectedCalId, setSelectedCalId] = useState(calendarId);
+  const permission = useCalendarPermission(selectedCalId || calendarId);
+  // Only admins/owners or when auth is disabled can report absences for everyone
+  const canReportOthers = permission.canEdit || permission.isOwner || !user;
 
   // Form State
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
-  const [absenceType, setAbsenceType] = useState<string>("vacation");
+  const [absenceType, setAbsenceType] = useState<string>("absence");
   const [reason, setReason] = useState<string>("");
   const [isRecurring, setIsRecurring] = useState<boolean>(false);
 
@@ -100,7 +104,7 @@ export function ReportAbsenceSheet({
   const [nonRecStartTime, setNonRecStartTime] = useState<string>("08:00");
   const [nonRecEndTime, setNonRecEndTime] = useState<string>("17:00");
 
-  // Non-recurring editable list of periods
+  // Non-recurring editable list of periods - starts empty for new absences
   const [periodsList, setPeriodsList] = useState<NonRecurringPeriod[]>([]);
 
   // Initialize or reset when sheet opens or editAbsence changes
@@ -111,7 +115,7 @@ export function ReportAbsenceSheet({
         setSelectedCalId(editAbsence.calendarId);
         setSelectedUserId(editAbsence.userId || "");
         setUserName(editAbsence.userName || "");
-        setAbsenceType(editAbsence.type || "vacation");
+        setAbsenceType(editAbsence.type || "absence");
         setReason(editAbsence.reason || "");
         setIsRecurring(editAbsence.isRecurring);
 
@@ -152,7 +156,7 @@ export function ReportAbsenceSheet({
         const todayStr = formatDateToLocal(new Date());
         setSelectedUserId(user?.id || "");
         setUserName(user?.name || "");
-        setAbsenceType("vacation");
+        setAbsenceType("absence");
         setReason("");
         setIsRecurring(false);
         setRecurringStartDate(todayStr);
@@ -168,16 +172,8 @@ export function ReportAbsenceSheet({
         setNonRecAllDay(true);
         setNonRecStartTime("08:00");
         setNonRecEndTime("17:00");
-        setPeriodsList([
-          {
-            id: crypto.randomUUID(),
-            startDate: todayStr,
-            endDate: todayStr,
-            isAllDay: true,
-            startTime: "08:00",
-            endTime: "17:00",
-          },
-        ]);
+        // Start with empty list so user can build their specific periods
+        setPeriodsList([]);
       }
     }
   }, [open, editAbsence, calendarId, user]);
@@ -210,7 +206,7 @@ export function ReportAbsenceSheet({
     }
   };
 
-  // Add non-recurring period to editable list
+  // Add non-recurring period to editable list (sorted ascending by date)
   const handleAddPeriod = () => {
     if (!nonRecStartDate || !nonRecEndDate) {
       toast.error(t("absence.invalidDates", { default: "Please enter valid dates" }));
@@ -231,10 +227,12 @@ export function ReportAbsenceSheet({
       endTime: nonRecAllDay ? "23:59" : nonRecEndTime,
     };
 
-    setPeriodsList((prev) => [...prev, newPeriod]);
+    setPeriodsList((prev) =>
+      [...prev, newPeriod].sort((a, b) => a.startDate.localeCompare(b.startDate))
+    );
     toast.success(t("absence.periodAdded", { default: "Period added to list" }));
 
-    // Reset input fields to next day or default
+    // Reset input fields
     setToFieldManuallyModified(false);
   };
 
@@ -245,7 +243,9 @@ export function ReportAbsenceSheet({
     value: NonRecurringPeriod[keyof NonRecurringPeriod]
   ) => {
     setPeriodsList((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+      prev
+        .map((item) => (item.id === id ? { ...item, [field]: value } : item))
+        .sort((a, b) => a.startDate.localeCompare(b.startDate))
     );
   };
 
@@ -264,11 +264,11 @@ export function ReportAbsenceSheet({
       return;
     }
 
-    const targetUserName =
-      userName ||
-      members.find((m) => m.id === selectedUserId)?.name ||
-      user?.name ||
-      "Employee";
+    // If user is not admin/manager, they can ONLY report absence for themselves
+    const finalSelectedUserId = canReportOthers ? (selectedUserId || user?.id || null) : (user?.id || null);
+    const targetUserName = canReportOthers
+      ? (userName || members.find((m) => m.id === selectedUserId)?.name || user?.name || "Employee")
+      : (user?.name || "Employee");
 
     try {
       if (isEditing && editAbsence) {
@@ -286,7 +286,7 @@ export function ReportAbsenceSheet({
             id: editAbsence.id,
             data: {
               calendarId: targetCalId,
-              userId: selectedUserId || null,
+              userId: finalSelectedUserId,
               userName: targetUserName,
               type: absenceType,
               reason,
@@ -311,7 +311,7 @@ export function ReportAbsenceSheet({
             id: editAbsence.id,
             data: {
               calendarId: targetCalId,
-              userId: selectedUserId || null,
+              userId: finalSelectedUserId,
               userName: targetUserName,
               type: absenceType,
               reason,
@@ -339,7 +339,7 @@ export function ReportAbsenceSheet({
           }
           await createAbsence({
             calendarId: targetCalId,
-            userId: selectedUserId || user?.id || null,
+            userId: finalSelectedUserId,
             userName: targetUserName,
             type: absenceType,
             reason,
@@ -369,7 +369,7 @@ export function ReportAbsenceSheet({
 
           const itemsToCreate = finalPeriods.map((period) => ({
             calendarId: targetCalId,
-            userId: selectedUserId || user?.id || null,
+            userId: finalSelectedUserId,
             userName: targetUserName,
             type: absenceType,
             reason,
@@ -446,7 +446,13 @@ export function ReportAbsenceSheet({
               <User className="w-4 h-4 text-primary" />
               {t("common.employee")}
             </Label>
-            {members.length > 0 ? (
+            {!canReportOthers && user ? (
+              <div className="flex h-11 w-full items-center rounded-md border border-border/50 bg-muted/40 px-3 py-2 text-sm text-foreground">
+                <User className="w-4 h-4 mr-2 text-muted-foreground" />
+                <span className="font-medium">{user.name || "Me"}</span>
+                <span className="ml-2 text-xs text-muted-foreground">({t("common.you", { default: "You" })})</span>
+              </div>
+            ) : members.length > 0 ? (
               <select
                 value={selectedUserId || userName}
                 onChange={(e) => {
@@ -493,24 +499,18 @@ export function ReportAbsenceSheet({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">
-                {t("absence.type", { default: "Absence Type" })}
+                {t("absence.type", { default: "Type" })}
               </Label>
               <select
                 value={absenceType}
                 onChange={(e) => setAbsenceType(e.target.value)}
                 className="flex h-11 w-full rounded-md border border-border/50 bg-background/50 px-3 py-2 text-sm focus:border-primary/50 focus:ring-primary/20"
               >
-                <option value="vacation">
-                  🌴 {t("absence.types.vacation", { default: "Vacation / Holiday" })}
-                </option>
-                <option value="illness">
-                  🏥 {t("absence.types.illness", { default: "Sick Leave / Illness" })}
-                </option>
                 <option value="absence">
-                  📅 {t("absence.types.absence", { default: "General Absence" })}
+                  📅 {t("absence.types.absence", { default: "Absence" })}
                 </option>
-                <option value="other">
-                  📝 {t("absence.types.other", { default: "Other" })}
+                <option value="vacation">
+                  🌴 {t("absence.types.vacation", { default: "Vacation" })}
                 </option>
               </select>
             </div>
@@ -717,6 +717,12 @@ export function ReportAbsenceSheet({
                         <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
                           <span>
                             {t("absence.periodNumber", { default: "Period" })} #{idx + 1}
+                            {item.startDate && (
+                              <span className="ml-2 font-normal text-foreground">
+                                ({formatDateToDDMMYYYY(item.startDate)}
+                                {item.startDate !== item.endDate && ` - ${formatDateToDDMMYYYY(item.endDate)}`})
+                              </span>
+                            )}
                           </span>
                           <Button
                             type="button"

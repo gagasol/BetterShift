@@ -28,7 +28,7 @@ import {
   Shield,
 } from "lucide-react";
 import { Absence } from "@/lib/types";
-import { formatDateToLocal } from "@/lib/date-utils";
+import { formatDateToDDMMYYYY } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -69,15 +69,17 @@ export default function AdminCalendarAbsencesPage({
     return null;
   }
 
-  const filteredAbsences = absences.filter((a) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      (a.userName || "").toLowerCase().includes(q) ||
-      (a.reason || "").toLowerCase().includes(q) ||
-      (a.type || "").toLowerCase().includes(q)
-    );
-  });
+  const filteredAbsences = absences
+    .filter((a) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        (a.userName || "").toLowerCase().includes(q) ||
+        (a.reason || "").toLowerCase().includes(q) ||
+        (a.type || "").toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
   const handleCreateNew = () => {
     setEditingAbsence(null);
@@ -231,8 +233,8 @@ export default function AdminCalendarAbsencesPage({
           <div className="grid gap-3 sm:gap-4">
             <AnimatePresence>
               {filteredAbsences.map((absence) => {
-                const startDateStr = formatDateToLocal(new Date(absence.startDate));
-                const endDateStr = formatDateToLocal(new Date(absence.endDate));
+                const startDateStr = formatDateToDDMMYYYY(absence.startDate);
+                const endDateStr = formatDateToDDMMYYYY(absence.endDate);
                 const weekdayText = getWeekdayLabels(absence.recurringDays);
 
                 return (

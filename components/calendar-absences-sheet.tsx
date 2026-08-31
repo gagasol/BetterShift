@@ -17,7 +17,7 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ReportAbsenceSheet } from "@/components/report-absence-sheet";
 import { useCalendarAbsences, useAbsenceMutations } from "@/hooks/useAbsences";
 import { Absence } from "@/lib/types";
-import { formatDateToLocal } from "@/lib/date-utils";
+import { formatDateToDDMMYYYY } from "@/lib/date-utils";
 import {
   CalendarOff,
   Plus,
@@ -54,14 +54,16 @@ export function CalendarAbsencesSheet({
   const [editingAbsence, setEditingAbsence] = useState<Absence | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const filteredAbsences = absences.filter((a) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    const nameMatch = (a.userName || "").toLowerCase().includes(query);
-    const reasonMatch = (a.reason || "").toLowerCase().includes(query);
-    const typeMatch = (a.type || "").toLowerCase().includes(query);
-    return nameMatch || reasonMatch || typeMatch;
-  });
+  const filteredAbsences = absences
+    .filter((a) => {
+      if (!searchQuery) return true;
+      const query = searchQuery.toLowerCase();
+      const nameMatch = (a.userName || "").toLowerCase().includes(query);
+      const reasonMatch = (a.reason || "").toLowerCase().includes(query);
+      const typeMatch = (a.type || "").toLowerCase().includes(query);
+      return nameMatch || reasonMatch || typeMatch;
+    })
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
   const handleCreateNew = () => {
     setEditingAbsence(null);
@@ -196,8 +198,8 @@ export function CalendarAbsencesSheet({
             ) : (
               <AnimatePresence>
                 {filteredAbsences.map((absence) => {
-                  const startDateStr = formatDateToLocal(new Date(absence.startDate));
-                  const endDateStr = formatDateToLocal(new Date(absence.endDate));
+                  const startDateStr = formatDateToDDMMYYYY(absence.startDate);
+                  const endDateStr = formatDateToDDMMYYYY(absence.endDate);
                   const weekdayText = getWeekdayLabels(absence.recurringDays);
 
                   return (

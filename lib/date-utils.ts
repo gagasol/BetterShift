@@ -177,3 +177,43 @@ export function getServerTimezone(): string {
   // Last fallback: UTC
   return "UTC";
 }
+
+/**
+ * Formats a date (string, Date, ISO timestamp) into European DD.MM.YYYY format
+ * @param dateInput - Date string (YYYY-MM-DD or ISO) or Date object
+ * @returns Formatted date string (e.g. "25.12.2026")
+ */
+export function formatDateToDDMMYYYY(
+  dateInput: string | Date | null | undefined
+): string {
+  if (!dateInput) return "";
+
+  if (typeof dateInput === "string") {
+    // If it is in YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+      const [year, month, day] = dateInput.split("-");
+      return `${day}.${month}.${year}`;
+    }
+
+    // Try parsing as Date
+    const d = new Date(dateInput);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${day}.${month}.${year}`;
+    }
+
+    return dateInput;
+  }
+
+  if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+    const year = dateInput.getFullYear();
+    const month = String(dateInput.getMonth() + 1).padStart(2, "0");
+    const day = String(dateInput.getDate()).padStart(2, "0");
+    return `${day}.${month}.${year}`;
+  }
+
+  return "";
+}
+
