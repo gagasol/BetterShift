@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { calendars, shifts } from "@/lib/db/schema";
+import { calendars, shifts, calendarLocations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getSessionUser } from "@/lib/auth/sessions";
 import { canViewCalendar, canEditCalendar } from "@/lib/auth/permissions";
@@ -18,6 +18,7 @@ export async function GET(
       .select({
         id: shifts.id,
         calendarId: shifts.calendarId,
+        locationId: shifts.locationId,
         date: shifts.date,
         startTime: shifts.startTime,
         endTime: shifts.endTime,
@@ -33,9 +34,15 @@ export async function GET(
           name: calendars.name,
           color: calendars.color,
         },
+        location: {
+          id: calendarLocations.id,
+          name: calendarLocations.name,
+          color: calendarLocations.color,
+        },
       })
       .from(shifts)
       .leftJoin(calendars, eq(shifts.calendarId, calendars.id))
+      .leftJoin(calendarLocations, eq(shifts.locationId, calendarLocations.id))
       .where(eq(shifts.id, id));
 
     if (!result[0]) {
@@ -137,6 +144,7 @@ export async function PUT(
       .update(shifts)
       .set({
         date: body.date ? new Date(body.date) : existingShift.date,
+        locationId: body.locationId !== undefined ? body.locationId : existingShift.locationId,
         startTime: body.startTime ?? existingShift.startTime,
         endTime: body.endTime ?? existingShift.endTime,
         title: body.title ?? existingShift.title,
@@ -149,7 +157,23 @@ export async function PUT(
       .where(eq(shifts.id, id))
       .returning();
 
-    return NextResponse.json(updatedShift);
+    // Fetch location details if available
+    let location = null;
+    if (updatedShift.locationId) {
+      const [loc] = await db
+        .select()
+        .from(calendarLocations)
+        .where(eq(calendarLocations.id, updatedShift.locationId));
+      if (loc) {
+        location = {
+          id: loc.id,
+          name: loc.name,
+          color: loc.color,
+        };
+      }
+    }
+
+    return NextResponse.json({ ...updatedShift, location });
   } catch (error) {
     console.error("Failed to update shift:", error);
     return NextResponse.json(

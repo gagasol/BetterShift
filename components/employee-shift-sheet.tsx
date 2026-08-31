@@ -8,6 +8,7 @@ import { EmployeeShiftFormFields } from "@/components/employee-shift-form-fields
 import { ReadOnlyBanner } from "@/components/read-only-banner";
 import { useCalendarPermission } from "@/hooks/useCalendarPermission";
 import { useCalendarMembers } from "@/hooks/useCalendarMembers";
+import { useCalendarLocations } from "@/hooks/useCalendarLocations";
 import { formatDateToLocal } from "@/lib/date-utils";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ interface EmployeeShiftSheetProps {
   selectedDate?: Date;
   shift?: ShiftWithCalendar;
   calendarId?: string;
+  selectedLocationId?: string;
   readOnly?: boolean;
   onDeleteShift?: (shiftId: string) => Promise<void>;
 }
@@ -31,6 +33,7 @@ export function EmployeeShiftSheet({
   selectedDate,
   shift,
   calendarId,
+  selectedLocationId,
   readOnly = false,
   onDeleteShift,
 }: EmployeeShiftSheetProps) {
@@ -40,7 +43,13 @@ export function EmployeeShiftSheet({
   const initialFormDataRef = useRef<string | null>(null);
 
   const { members, isLoading: membersLoading } = useCalendarMembers(calendarId);
+  const { locations } = useCalendarLocations(calendarId || null);
   const isReadOnly = readOnly || !permission.canEdit;
+
+  const defaultLocId =
+    shift?.locationId ||
+    selectedLocationId ||
+    (locations.length > 0 ? locations[0].id : undefined);
 
   const [formData, setFormData] = useState<ShiftFormData>({
     date: formatDateToLocal(selectedDate || new Date()),
@@ -50,11 +59,17 @@ export function EmployeeShiftSheet({
     color: "#3b82f6",
     notes: "",
     isAllDay: false,
+    locationId: defaultLocId,
   });
 
   // Sync form data on open or shift change
   useEffect(() => {
     if (open) {
+      const locId =
+        shift?.locationId ||
+        selectedLocationId ||
+        (locations.length > 0 ? locations[0].id : undefined);
+
       if (shift) {
         const initialData: ShiftFormData = {
           date:
@@ -67,6 +82,7 @@ export function EmployeeShiftSheet({
           notes: shift.notes || "",
           color: shift.color || "#3b82f6",
           isAllDay: false,
+          locationId: locId,
         };
         setFormData(initialData);
         initialFormDataRef.current = JSON.stringify(initialData);
@@ -79,6 +95,7 @@ export function EmployeeShiftSheet({
           color: "#3b82f6",
           notes: "",
           isAllDay: false,
+          locationId: locId,
         };
         setFormData(initialData);
         initialFormDataRef.current = null;
@@ -86,7 +103,7 @@ export function EmployeeShiftSheet({
     } else {
       initialFormDataRef.current = null;
     }
-  }, [open, shift, selectedDate]);
+  }, [open, shift, selectedDate, selectedLocationId, locations]);
 
   const hasChanges = (): boolean => {
     if (shift && initialFormDataRef.current) {
@@ -98,6 +115,7 @@ export function EmployeeShiftSheet({
         notes: formData.notes || "",
         color: formData.color,
         isAllDay: false,
+        locationId: formData.locationId,
       };
       return JSON.stringify(currentData) !== initialFormDataRef.current;
     }
@@ -115,6 +133,7 @@ export function EmployeeShiftSheet({
       await onSubmit({
         ...formData,
         isAllDay: false,
+        locationId: formData.locationId,
       });
       onOpenChange(false);
     } finally {
@@ -146,6 +165,7 @@ export function EmployeeShiftSheet({
         <EmployeeShiftFormFields
           formData={formData}
           onFormDataChange={setFormData}
+          locations={locations}
           readOnly={isReadOnly}
           members={members}
           membersLoading={membersLoading}

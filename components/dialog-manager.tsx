@@ -27,6 +27,7 @@ interface DialogManagerProps {
   onPresetsChange?: () => void;
   calendars: CalendarWithCount[];
   editingShift?: ShiftWithCalendar; // For editing existing shifts
+  selectedLocationId?: string;
 
   // Calendar Settings Dialog
   showCalendarSettingsDialog: boolean;
@@ -131,6 +132,7 @@ export function DialogManager(props: DialogManagerProps) {
           selectedDate={props.selectedDate}
           shift={props.editingShift}
           calendarId={props.selectedCalendar || undefined}
+          selectedLocationId={props.selectedLocationId}
           onDeleteShift={props.onDeleteShift}
         />
       ) : (
@@ -142,6 +144,7 @@ export function DialogManager(props: DialogManagerProps) {
           shift={props.editingShift}
           onPresetsChange={props.onPresetsChange}
           calendarId={props.selectedCalendar || undefined}
+          selectedLocationId={props.selectedLocationId}
           onDeleteShift={props.onDeleteShift}
         />
       )}

@@ -817,5 +817,21 @@
     "clearSelection": "Auswahl aufheben",
     "deleteSelectedLogsDescription": "{count, plural, one {# ausgewähltes Protokoll} other {# ausgewählte Protokolle}} löschen. Diese Aktion kann nicht rückgängig gemacht werden.",
     "willDeleteSelectedLogs": "{count, plural, one {# Protokoll} other {# Protokolle}} werden dauerhaft gelöscht"
+  },
+  "location": {
+    "location": "Standort",
+    "locations": "Standorte",
+    "manageLocations": "Standorte verwalten",
+    "manageLocationsDescription": "Jeder Kalender unterstützt mehrere Standorte. Das Kalenderraster wird für jeden Standort vertikal aufgeteilt.",
+    "addLocation": "Standort hinzufügen",
+    "editLocation": "Standort bearbeiten",
+    "deleteLocation": "Standort löschen",
+    "locationName": "Standortname",
+    "locationNamePlaceholder": "z. B. Raum 1, Etage 2, Filiale A",
+    "locationColor": "Standortfarbe",
+    "defaultLocation": "Hauptstandort",
+    "cannotDeleteLast": "Ein Kalender muss mindestens einen Standort haben",
+    "deleteConfirm": "Standort \"{name}\" löschen? Alle Schichten dieses Standorts werden dem Hauptstandort zugewiesen.",
+    "selectLocation": "Standort auswählen"
   }
 }

@@ -817,5 +817,21 @@
     "clearSelection": "Clear Selection",
     "deleteSelectedLogsDescription": "Delete {count, plural, one {# selected log} other {# selected logs}}. This action cannot be undone.",
     "willDeleteSelectedLogs": "{count, plural, one {# log} other {# logs}} will be permanently deleted"
+  },
+  "location": {
+    "location": "Location",
+    "locations": "Locations",
+    "manageLocations": "Manage Locations",
+    "manageLocationsDescription": "Each calendar supports multiple locations. The calendar grid splits vertically for each location.",
+    "addLocation": "Add Location",
+    "editLocation": "Edit Location",
+    "deleteLocation": "Delete Location",
+    "locationName": "Location Name",
+    "locationNamePlaceholder": "e.g. Room 1, Floor 2, Branch A",
+    "locationColor": "Location Color",
+    "defaultLocation": "Main Location",
+    "cannotDeleteLast": "A calendar must have at least one location",
+    "deleteConfirm": "Delete location \"{name}\"? All shifts in this location will be moved to the primary location.",
+    "selectLocation": "Select Location"
   }
 }

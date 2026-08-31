@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { calendars, shifts, externalSyncs } from "@/lib/db/schema";
+import { calendars, shifts, externalSyncs, calendarLocations } from "@/lib/db/schema";
 import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
 import { getSessionUser } from "@/lib/auth/sessions";
 import { canViewCalendar, canEditCalendar } from "@/lib/auth/permissions";
@@ -48,6 +48,7 @@ export async function GET(request: Request) {
       .select({
         id: shifts.id,
         calendarId: shifts.calendarId,
+        locationId: shifts.locationId,
         date: shifts.date,
         startTime: shifts.startTime,
         endTime: shifts.endTime,
@@ -65,10 +66,16 @@ export async function GET(request: Request) {
           name: calendars.name,
           color: calendars.color,
         },
+        location: {
+          id: calendarLocations.id,
+          name: calendarLocations.name,
+          color: calendarLocations.color,
+        },
       })
       .from(shifts)
       .leftJoin(calendars, eq(shifts.calendarId, calendars.id))
-      .leftJoin(externalSyncs, eq(shifts.externalSyncId, externalSyncs.id));
+      .leftJoin(externalSyncs, eq(shifts.externalSyncId, externalSyncs.id))
+      .leftJoin(calendarLocations, eq(shifts.locationId, calendarLocations.id));
 
     if (date) {
       let targetDate;
@@ -120,6 +127,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       calendarId,
+      locationId: inputLocationId,
       date,
       startTime,
       endTime,
@@ -162,6 +170,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // Resolve locationId
+    let finalLocationId = inputLocationId || null;
+    if (!finalLocationId) {
+      // Find or create default location
+      const existingLocs = await db
+        .select()
+        .from(calendarLocations)
+        .where(eq(calendarLocations.calendarId, calendarId));
+      if (existingLocs.length > 0) {
+        finalLocationId = existingLocs[0].id;
+      } else {
+        const [newLoc] = await db
+          .insert(calendarLocations)
+          .values({
+            calendarId,
+            name: "Main Location",
+            order: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning();
+        if (newLoc) {
+          finalLocationId = newLoc.id;
+        }
+      }
+    }
+
     let parsedDate;
     try {
       parsedDate = parseLocalDate(date);
@@ -176,6 +211,7 @@ export async function POST(request: Request) {
       .insert(shifts)
       .values({
         calendarId,
+        locationId: finalLocationId,
         presetId: presetId || null,
         date: parsedDate,
         startTime: isAllDay ? "00:00" : startTime,
@@ -190,7 +226,23 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    return NextResponse.json({ ...shift, calendar }, { status: 201 });
+    // Fetch location details if available
+    let location = null;
+    if (shift.locationId) {
+      const [loc] = await db
+        .select()
+        .from(calendarLocations)
+        .where(eq(calendarLocations.id, shift.locationId));
+      if (loc) {
+        location = {
+          id: loc.id,
+          name: loc.name,
+          color: loc.color,
+        };
+      }
+    }
+
+    return NextResponse.json({ ...shift, calendar, location }, { status: 201 });
   } catch (error) {
     console.error("Failed to create shift:", error);
     return NextResponse.json(

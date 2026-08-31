@@ -10,6 +10,7 @@ import { ShiftWithCalendar } from "@/lib/types";
 import { CalendarNote, ExternalSync } from "@/lib/db/schema";
 import { Locale } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import { useCalendarLocations } from "@/hooks/useCalendarLocations";
 
 interface CalendarContentProps {
   calendarDays: Date[];
@@ -31,7 +32,7 @@ interface CalendarContentProps {
   highlightColor?: string;
   selectedCalendar: string | null;
   locale?: Locale;
-  onDayClick: (date: Date) => void;
+  onDayClick: (date: Date, locationId?: string) => void;
   onDayRightClick?: (e: React.MouseEvent, date: Date) => void;
   onNoteIconClick?: (e: React.MouseEvent, date: Date) => void;
   onLongPress?: (date: Date) => void;
@@ -44,6 +45,7 @@ interface CalendarContentProps {
 export function CalendarContent(props: CalendarContentProps) {
   const t = useTranslations();
   const { isGuest } = useAuth();
+  const { locations } = useCalendarLocations(props.selectedCalendar);
 
   return (
     <>
@@ -70,6 +72,7 @@ export function CalendarContent(props: CalendarContentProps) {
         currentDate={props.currentDate}
         shifts={props.shifts}
         notes={props.notes}
+        locations={locations}
         selectedPresetId={props.selectedPresetId}
         togglingDates={props.togglingDates}
         externalSyncs={props.externalSyncs}

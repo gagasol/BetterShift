@@ -21,6 +21,7 @@ interface ShiftSheetProps {
   shift?: ShiftWithCalendar;
   onPresetsChange?: () => void;
   calendarId?: string;
+  selectedLocationId?: string;
   readOnly?: boolean;
   onDeleteShift?: (shiftId: string) => Promise<void>;
 }
@@ -34,6 +35,7 @@ export interface ShiftFormData {
   notes?: string;
   presetId?: string;
   isAllDay?: boolean;
+  locationId?: string;
 }
 
 export function ShiftSheet({
@@ -44,6 +46,7 @@ export function ShiftSheet({
   shift,
   onPresetsChange,
   calendarId,
+  selectedLocationId,
   readOnly = false,
   onDeleteShift,
 }: ShiftSheetProps) {
@@ -59,6 +62,7 @@ export function ShiftSheet({
     formData,
     setFormData,
     presets,
+    locations,
     saveAsPreset,
     setSaveAsPreset,
     presetName,
@@ -66,7 +70,7 @@ export function ShiftSheet({
     applyPreset,
     saveAsPresetHandler,
     resetForm,
-  } = useShiftForm({ open, shift, selectedDate, calendarId });
+  } = useShiftForm({ open, shift, selectedDate, calendarId, selectedLocationId });
 
   // Store initial form data when sheet opens
   useEffect(() => {
@@ -84,6 +88,7 @@ export function ShiftSheet({
         color: shift.color,
         isAllDay: shift.isAllDay || false,
         presetId: shift.presetId || undefined,
+        locationId: shift.locationId || undefined,
       };
       initialFormDataRef.current = JSON.stringify(initialData);
     } else if (!open) {
@@ -104,6 +109,7 @@ export function ShiftSheet({
         color: formData.color,
         isAllDay: formData.isAllDay || false,
         presetId: formData.presetId || undefined,
+        locationId: formData.locationId || undefined,
       };
 
       return JSON.stringify(currentData) !== initialFormDataRef.current;
@@ -128,6 +134,7 @@ export function ShiftSheet({
         ...formData,
         startTime: formData.isAllDay ? "00:00" : formData.startTime,
         endTime: formData.isAllDay ? "23:59" : formData.endTime,
+        locationId: formData.locationId,
       };
 
       await onSubmit(submitData);
@@ -183,6 +190,7 @@ export function ShiftSheet({
         <ShiftFormFields
           formData={formData}
           onFormDataChange={setFormData}
+          locations={locations}
           saveAsPreset={saveAsPreset}
           onSaveAsPresetChange={setSaveAsPreset}
           presetName={presetName}

@@ -1,5 +1,6 @@
 // Re-export types from Drizzle schema
-export type { Calendar, Shift, ExternalSync } from "./db/schema";
+export type { Calendar, Shift, ExternalSync, CalendarLocation } from "./db/schema";
+import type { CalendarLocation } from "./db/schema";
 
 export interface CalendarWithCount {
   id: string;
@@ -10,6 +11,7 @@ export interface CalendarWithCount {
   createdAt: Date | null;
   updatedAt: Date | null;
   _count?: number;
+  locations?: CalendarLocation[];
   // Permission metadata (only for authenticated users)
   sharePermission?: "owner" | "admin" | "write" | "read";
   tokenPermission?: "read" | "write"; // Permission from access token
@@ -20,6 +22,12 @@ export interface CalendarWithCount {
 export interface ShiftWithCalendar {
   id: string;
   calendarId: string;
+  locationId?: string | null;
+  location?: {
+    id: string;
+    name: string;
+    color?: string | null;
+  } | null;
   presetId?: string | null;
   calendar?: {
     id: string;

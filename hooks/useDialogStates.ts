@@ -25,6 +25,9 @@ export function useDialogStates() {
     ShiftWithCalendar[]
   >([]);
   const [selectedDayNotes, setSelectedDayNotes] = useState<CalendarNote[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<
+    string | undefined
+  >();
 
   return {
     showCalendarDialog,
@@ -55,5 +58,7 @@ export function useDialogStates() {
     setSelectedSyncedShifts,
     selectedDayNotes,
     setSelectedDayNotes,
+    selectedLocationId,
+    setSelectedLocationId,
   };
 }

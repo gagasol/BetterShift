@@ -5,8 +5,9 @@ import {
   shifts,
   shiftPresets,
   calendarNotes,
+  calendarLocations,
 } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, asc } from "drizzle-orm";
 import { getSessionUser } from "@/lib/auth/sessions";
 import {
   canViewCalendar,
@@ -50,13 +51,39 @@ export async function GET(
       );
     }
 
+    let locations = await db
+      .select()
+      .from(calendarLocations)
+      .where(eq(calendarLocations.calendarId, id))
+      .orderBy(asc(calendarLocations.order), asc(calendarLocations.createdAt));
+
+    if (locations.length === 0) {
+      const [newLoc] = await db
+        .insert(calendarLocations)
+        .values({
+          calendarId: id,
+          name: "Main Location",
+          order: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      if (newLoc) {
+        await db
+          .update(shifts)
+          .set({ locationId: newLoc.id })
+          .where(eq(shifts.calendarId, id));
+        locations = [newLoc];
+      }
+    }
+
     const calendarShifts = await db
       .select()
       .from(shifts)
       .where(eq(shifts.calendarId, id))
       .orderBy(shifts.date);
 
-    return NextResponse.json({ ...calendar, shifts: calendarShifts });
+    return NextResponse.json({ ...calendar, locations, shifts: calendarShifts });
   } catch (error) {
     console.error("Failed to fetch calendar:", error);
     return NextResponse.json(

@@ -271,11 +271,12 @@ function HomeContent() {
   // Manual shift creation
   const handleManualShiftCreation = () => {
     setSelectedDate(new Date());
+    dialogStates.setSelectedLocationId(undefined);
     dialogStates.setShowShiftDialog(true);
   };
 
   // Day interaction handlers
-  const handleDayClick = (date: Date | string) => {
+  const handleDayClick = (date: Date | string, locationId?: string) => {
     // Parse date to ensure it's a Date object
     const targetDate =
       typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
@@ -283,9 +284,16 @@ function HomeContent() {
         : new Date(date);
     if (FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE) {
       setSelectedDate(targetDate);
+      dialogStates.setSelectedLocationId(locationId);
       dialogStates.setShowShiftDialog(true);
     } else {
-      shiftActions.handleAddShift(targetDate, selectedPresetId);
+      if (selectedPresetId) {
+        shiftActions.handleAddShift(targetDate, selectedPresetId, locationId);
+      } else {
+        setSelectedDate(targetDate);
+        dialogStates.setSelectedLocationId(locationId);
+        dialogStates.setShowShiftDialog(true);
+      }
     }
   };
 
@@ -380,6 +388,7 @@ function HomeContent() {
     dialogStates.setShowShiftDialog(open);
     if (!open) {
       setEditingShift(undefined);
+      dialogStates.setSelectedLocationId(undefined);
     }
   };
 
@@ -802,6 +811,7 @@ function HomeContent() {
           selectedDate={selectedDate}
           selectedCalendar={selectedCalendar || null}
           calendars={calendars}
+          selectedLocationId={dialogStates.selectedLocationId}
           showCalendarSettingsDialog={dialogStates.showCalendarSettingsDialog}
           onCalendarSettingsDialogChange={
             dialogStates.setShowCalendarSettingsDialog
@@ -974,6 +984,7 @@ function HomeContent() {
         selectedCalendar={selectedCalendar || null}
         calendars={calendars}
         editingShift={editingShift}
+        selectedLocationId={dialogStates.selectedLocationId}
         showCalendarSettingsDialog={dialogStates.showCalendarSettingsDialog}
         onCalendarSettingsDialogChange={
           dialogStates.setShowCalendarSettingsDialog

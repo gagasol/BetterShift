@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { CalendarShareManagementSheet } from "@/components/calendar-share-management-sheet";
+import { CalendarLocationsManager } from "@/components/calendar-locations-manager";
 import { useCalendars } from "@/hooks/useCalendars";
 import { useCalendarPermission } from "@/hooks/useCalendarPermission";
 import { useAuthFeatures } from "@/hooks/useAuthFeatures";
@@ -179,6 +180,9 @@ export function CalendarSettingsSheet({
               label={t("form.colorLabel")}
               presetColors={PRESET_COLORS}
             />
+
+            {/* Locations Manager Section */}
+            <CalendarLocationsManager calendarId={calendarId} />
 
             {/* External Sync Section */}
             {onExternalSync && (

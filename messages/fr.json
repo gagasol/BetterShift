@@ -815,5 +815,21 @@
     "clearSelection": "Effacer la sélection",
     "deleteSelectedLogsDescription": "Supprimer {count, plural, one {# journal sélectionné} other {# journaux sélectionnés}}. Cette action est irréversible.",
     "willDeleteSelectedLogs": "{count, plural, one {# journal} other {# journaux}} sera/seront supprimé(s) définitivement"
+  },
+  "location": {
+    "location": "Emplacement",
+    "locations": "Emplacements",
+    "manageLocations": "Gérer les emplacements",
+    "manageLocationsDescription": "Chaque calendrier prend en charge plusieurs emplacements. La grille se divise verticalement pour chaque emplacement.",
+    "addLocation": "Ajouter un emplacement",
+    "editLocation": "Modifier l'emplacement",
+    "deleteLocation": "Supprimer l'emplacement",
+    "locationName": "Nom de l'emplacement",
+    "locationNamePlaceholder": "ex. Salle 1, Étage 2, Agence A",
+    "locationColor": "Couleur de l'emplacement",
+    "defaultLocation": "Emplacement principal",
+    "cannotDeleteLast": "Un calendrier doit avoir au moins un emplacement",
+    "deleteConfirm": "Supprimer l'emplacement \"{name}\" ? Les quarts seront déplacés vers l'emplacement principal.",
+    "selectLocation": "Sélectionner un emplacement"
   }
 }

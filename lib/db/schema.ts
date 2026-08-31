@@ -213,6 +213,31 @@ export const externalSyncs = sqliteTable("external_syncs", {
     .default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const calendarLocations = sqliteTable(
+  "calendar_locations",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    calendarId: text("calendar_id")
+      .notNull()
+      .references(() => calendars.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    order: integer("order").notNull().default(0),
+    color: text("color"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("calendar_locations_calendarId_idx").on(table.calendarId),
+    index("calendar_locations_order_idx").on(table.order),
+  ]
+);
+
 export const shifts = sqliteTable("shifts", {
   id: text("id")
     .primaryKey()
@@ -220,6 +245,9 @@ export const shifts = sqliteTable("shifts", {
   calendarId: text("calendar_id")
     .notNull()
     .references(() => calendars.id, { onDelete: "cascade" }),
+  locationId: text("location_id").references(() => calendarLocations.id, {
+    onDelete: "set null",
+  }),
   presetId: text("preset_id").references(() => shiftPresets.id, {
     onDelete: "set null",
   }),
@@ -392,6 +420,9 @@ export const calendarAccessTokens = sqliteTable(
 export type Calendar = typeof calendars.$inferSelect;
 export type NewCalendar = typeof calendars.$inferInsert;
 
+export type CalendarLocation = typeof calendarLocations.$inferSelect;
+export type NewCalendarLocation = typeof calendarLocations.$inferInsert;
+
 export type CalendarAccessToken = typeof calendarAccessTokens.$inferSelect;
 export type NewCalendarAccessToken = typeof calendarAccessTokens.$inferInsert;
 
@@ -456,11 +487,42 @@ export const calendarsRelations = relations(calendars, ({ one, many }) => ({
   shares: many(calendarShares),
   subscriptions: many(userCalendarSubscriptions),
   accessTokens: many(calendarAccessTokens),
+  locations: many(calendarLocations),
   shifts: many(shifts),
   presets: many(shiftPresets),
   notes: many(calendarNotes),
   externalSyncs: many(externalSyncs),
   syncLogs: many(syncLogs),
+}));
+
+export const calendarLocationsRelations = relations(
+  calendarLocations,
+  ({ one, many }) => ({
+    calendar: one(calendars, {
+      fields: [calendarLocations.calendarId],
+      references: [calendars.id],
+    }),
+    shifts: many(shifts),
+  })
+);
+
+export const shiftsRelations = relations(shifts, ({ one }) => ({
+  calendar: one(calendars, {
+    fields: [shifts.calendarId],
+    references: [calendars.id],
+  }),
+  location: one(calendarLocations, {
+    fields: [shifts.locationId],
+    references: [calendarLocations.id],
+  }),
+  preset: one(shiftPresets, {
+    fields: [shifts.presetId],
+    references: [shiftPresets.id],
+  }),
+  externalSync: one(externalSyncs, {
+    fields: [shifts.externalSyncId],
+    references: [externalSyncs.id],
+  }),
 }));
 
 export const calendarSharesRelations = relations(calendarShares, ({ one }) => ({

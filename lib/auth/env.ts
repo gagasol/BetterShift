@@ -14,7 +14,9 @@
 
 export const AUTH_ENABLED = process.env.AUTH_ENABLED !== "false"; // Default: true
 
-export const BETTER_AUTH_SECRET = process.env.BETTER_AUTH_SECRET || "";
+export const BETTER_AUTH_SECRET =
+  process.env.BETTER_AUTH_SECRET ||
+  "bettershift-dev-secret-key-must-be-at-least-32-chars-long";
 
 export const BETTER_AUTH_URL =
   process.env.BETTER_AUTH_URL || "http://localhost:3000";

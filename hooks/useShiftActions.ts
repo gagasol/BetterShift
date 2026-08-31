@@ -50,7 +50,11 @@ export function useShiftActions({
   );
 
   const handleAddShift = useCallback(
-    async (date: Date | string, selectedPresetId: string | undefined) => {
+    async (
+      date: Date | string,
+      selectedPresetId: string | undefined,
+      locationId?: string
+    ) => {
       if (!selectedPresetId) return;
 
       const preset = presets.find((p) => p.id === selectedPresetId);
@@ -73,7 +77,8 @@ export function useShiftActions({
             isSameDay(shift.date as Date, targetDate) &&
             shift.title === preset.title &&
             shift.startTime === preset.startTime &&
-            shift.endTime === preset.endTime
+            shift.endTime === preset.endTime &&
+            (!locationId || shift.locationId === locationId)
         );
 
         if (existingShift) {
@@ -92,6 +97,7 @@ export function useShiftActions({
             notes: preset.notes || "",
             presetId: preset.id,
             isAllDay: preset.isAllDay || false,
+            locationId: locationId,
           };
 
           try {

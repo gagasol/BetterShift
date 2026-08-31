@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { RefreshCw } from "lucide-react";
-import { ShiftWithCalendar } from "@/lib/types";
+import { ShiftWithCalendar, CalendarLocation } from "@/lib/types";
 import { CalendarNote, ExternalSync } from "@/lib/db/schema";
 import { isToday } from "date-fns";
 import { useTranslations } from "next-intl";
@@ -14,6 +14,7 @@ interface CalendarGridProps {
   currentDate: Date;
   shifts: ShiftWithCalendar[];
   notes: CalendarNote[];
+  locations?: CalendarLocation[];
   selectedPresetId: string | undefined;
   togglingDates: Set<string>;
   externalSyncs: ExternalSync[];
@@ -26,7 +27,7 @@ interface CalendarGridProps {
   combinedSortMode?: boolean; // sort all shifts together or separately
   highlightedWeekdays?: number[]; // weekdays to highlight (0=Sunday, 6=Saturday)
   highlightColor?: string; // color for highlighted days
-  onDayClick: (date: Date) => void;
+  onDayClick: (date: Date, locationId?: string) => void;
   onDayRightClick?: (e: React.MouseEvent, date: Date) => void;
   onNoteIconClick?: (e: React.MouseEvent, date: Date) => void;
   onLongPress?: (date: Date) => void;
@@ -40,6 +41,7 @@ export function CalendarGrid({
   currentDate,
   shifts,
   notes,
+  locations = [],
   selectedPresetId,
   togglingDates,
   externalSyncs,
@@ -62,6 +64,8 @@ export function CalendarGrid({
 }: CalendarGridProps) {
   const t = useTranslations();
   const pressTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
+
+  const hasMultipleLocations = locations && locations.length > 1;
 
   // Cleanup all timers on unmount
   useEffect(() => {
@@ -96,7 +100,6 @@ export function CalendarGrid({
           comparison = a.startTime.localeCompare(b.startTime);
           break;
         case "createdAt": {
-          // Handle null values by treating them as very old dates
           const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           comparison = aTime - bTime;
@@ -109,6 +112,213 @@ export function CalendarGrid({
 
       return shiftSortOrder === "asc" ? comparison : -comparison;
     });
+  };
+
+  // Helper to render shifts for a column/day
+  const renderShiftsGroup = (
+    dayShiftsToRender: ShiftWithCalendar[],
+    day: Date
+  ) => {
+    const syncedShiftsByMode: { [key: string]: ShiftWithCalendar[] } = {};
+
+    dayShiftsToRender.forEach((shift) => {
+      if (shift.syncedFromExternal && shift.externalSyncId) {
+        const sync = externalSyncs.find((s) => s.id === shift.externalSyncId);
+        const displayMode = sync?.displayMode || "normal";
+
+        if (displayMode === "minimal") {
+          if (!syncedShiftsByMode[shift.externalSyncId]) {
+            syncedShiftsByMode[shift.externalSyncId] = [];
+          }
+          syncedShiftsByMode[shift.externalSyncId].push(shift);
+        }
+      }
+    });
+
+    const regularShifts = dayShiftsToRender.filter(
+      (s) => !s.syncedFromExternal
+    );
+    const externalNormalShifts = dayShiftsToRender.filter((s) => {
+      if (!s.syncedFromExternal) return false;
+      if (!s.externalSyncId) return false;
+      const sync = externalSyncs.find((sync) => sync.id === s.externalSyncId);
+      return sync && sync.displayMode === "normal";
+    });
+
+    let sortedRegularShifts: ShiftWithCalendar[];
+    let sortedExternalNormalShifts: ShiftWithCalendar[];
+    let allSortedShifts: ShiftWithCalendar[];
+
+    if (combinedSortMode) {
+      const allNormalShifts = [...regularShifts, ...externalNormalShifts];
+      allSortedShifts = sortShifts(allNormalShifts);
+      sortedRegularShifts = sortShifts(regularShifts);
+      sortedExternalNormalShifts = sortShifts(externalNormalShifts);
+    } else {
+      sortedRegularShifts = sortShifts(regularShifts);
+      sortedExternalNormalShifts = sortShifts(externalNormalShifts);
+      allSortedShifts = [];
+    }
+
+    const regularIndexMap = new Map<string, number>();
+    const externalIndexMap = new Map<string, number>();
+
+    if (combinedSortMode) {
+      sortedRegularShifts.forEach((shift, index) => {
+        regularIndexMap.set(shift.id, index);
+      });
+      sortedExternalNormalShifts.forEach((shift, index) => {
+        externalIndexMap.set(shift.id, index);
+      });
+    }
+
+    const hiddenRegularCount =
+      maxShiftsToShow !== undefined
+        ? Math.max(0, sortedRegularShifts.length - maxShiftsToShow)
+        : 0;
+    const hiddenExternalCount =
+      maxExternalShiftsToShow !== undefined
+        ? Math.max(0, sortedExternalNormalShifts.length - maxExternalShiftsToShow)
+        : 0;
+    const totalHiddenCount = hiddenRegularCount + hiddenExternalCount;
+
+    const displayableShifts = dayShiftsToRender.filter(
+      (s) =>
+        !s.syncedFromExternal ||
+        (s.externalSyncId &&
+          externalSyncs.find((sync) => sync.id === s.externalSyncId)?.displayMode === "normal")
+    );
+
+    return (
+      <div className="space-y-0.5 sm:space-y-1">
+        {combinedSortMode ? (
+          <>
+            {allSortedShifts.map((shift) => {
+              const isRegular = !shift.syncedFromExternal;
+              const regularIndex = isRegular
+                ? (regularIndexMap.get(shift.id) ?? -1)
+                : -1;
+              const externalIndex = !isRegular
+                ? (externalIndexMap.get(shift.id) ?? -1)
+                : -1;
+
+              const shouldDisplay =
+                (isRegular &&
+                  (maxShiftsToShow === undefined || regularIndex < maxShiftsToShow)) ||
+                (!isRegular &&
+                  (maxExternalShiftsToShow === undefined ||
+                    externalIndex < maxExternalShiftsToShow));
+
+              if (!shouldDisplay) return null;
+
+              return (
+                <CalendarShiftCard
+                  key={shift.id}
+                  shift={shift}
+                  showShiftNotes={showShiftNotes}
+                  showFullTitles={showFullTitles}
+                  onEditShift={!selectedPresetId ? onEditShift : undefined}
+                />
+              );
+            })}
+
+            {totalHiddenCount > 0 && (
+              <div
+                onClick={(e) => {
+                  if (selectedPresetId) return;
+                  e.stopPropagation();
+                  onShowAllShifts?.(day, displayableShifts);
+                }}
+                className={`text-[9px] sm:text-[10px] text-primary font-semibold text-center pt-0.5 transition-colors ${
+                  selectedPresetId
+                    ? "cursor-not-allowed opacity-50"
+                    : "hover:text-primary/80 hover:underline cursor-pointer"
+                }`}
+              >
+                +{totalHiddenCount}{" "}
+                {totalHiddenCount === 1 ? t("shift.shift_one") : t("common.shifts")}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {(maxShiftsToShow === undefined
+              ? sortedRegularShifts
+              : sortedRegularShifts.slice(0, maxShiftsToShow)
+            ).map((shift) => (
+              <CalendarShiftCard
+                key={shift.id}
+                shift={shift}
+                showShiftNotes={showShiftNotes}
+                showFullTitles={showFullTitles}
+                onEditShift={!selectedPresetId ? onEditShift : undefined}
+              />
+            ))}
+
+            {(maxExternalShiftsToShow === undefined
+              ? sortedExternalNormalShifts
+              : sortedExternalNormalShifts.slice(0, maxExternalShiftsToShow)
+            ).map((shift) => (
+              <CalendarShiftCard
+                key={shift.id}
+                shift={shift}
+                showShiftNotes={showShiftNotes}
+                showFullTitles={showFullTitles}
+                onEditShift={!selectedPresetId ? onEditShift : undefined}
+              />
+            ))}
+
+            {totalHiddenCount > 0 && (
+              <div
+                onClick={(e) => {
+                  if (selectedPresetId) return;
+                  e.stopPropagation();
+                  onShowAllShifts?.(day, displayableShifts);
+                }}
+                className={`text-[9px] sm:text-[10px] text-primary font-semibold text-center pt-0.5 transition-colors ${
+                  selectedPresetId
+                    ? "cursor-not-allowed opacity-50"
+                    : "hover:text-primary/80 hover:underline cursor-pointer"
+                }`}
+              >
+                +{totalHiddenCount}{" "}
+                {totalHiddenCount === 1 ? t("shift.shift_one") : t("common.shifts")}
+              </div>
+            )}
+          </>
+        )}
+
+        {Object.entries(syncedShiftsByMode).map(([syncId, syncShifts]) => {
+          const sync = externalSyncs.find((s) => s.id === syncId);
+          if (!sync || syncShifts.length === 0) return null;
+
+          return (
+            <div
+              key={syncId}
+              onClick={(e) => {
+                if (selectedPresetId) return;
+                e.stopPropagation();
+                onShowSyncedShifts?.(day, syncShifts);
+              }}
+              className={`text-[9px] sm:text-[10px] px-1 py-0.5 rounded bg-muted/50 border border-border/50 text-muted-foreground transition-colors text-center ${
+                selectedPresetId
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:bg-muted hover:text-foreground cursor-pointer"
+              }`}
+              style={{
+                borderLeftColor: sync.color,
+                borderLeftWidth: "2px",
+              }}
+            >
+              <span className="flex items-center justify-center gap-1">
+                <span>+{syncShifts.length}</span>
+                <RefreshCw className="h-2.5 w-2.5" />
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -147,7 +357,6 @@ export function CalendarGrid({
         const isCurrentMonth = day.getMonth() === currentDate.getMonth();
         const isTodayDate = isToday(day);
 
-        // Use formatDateToLocal to match the format used in handleAddShift
         const dayKey = formatDateToLocal(day);
         const isToggling = togglingDates.has(dayKey);
 
@@ -155,7 +364,7 @@ export function CalendarGrid({
           if (onLongPress) {
             pressTimerRef.current[dayKey] = setTimeout(
               () => onLongPress(day),
-              500,
+              500
             );
           }
         };
@@ -170,8 +379,6 @@ export function CalendarGrid({
           highlightedWeekdays.length > 0 &&
           highlightedWeekdays.includes(day.getDay());
 
-        // Create gradient border for multiple events
-        // Note: borderImage doesn't support border-radius, so we use a different approach
         const hasMultiEventBorder = dayEvents.length > 1 && !isTodayDate;
         const eventBorderStyle =
           dayEvents.length === 1 && !isTodayDate
@@ -181,10 +388,16 @@ export function CalendarGrid({
               }
             : {};
 
+        const defaultLocationId = locations.length > 0 ? locations[0].id : undefined;
+
         return (
-          <motion.button
+          <motion.div
             key={idx}
-            onClick={() => onDayClick(day)}
+            onClick={() => {
+              if (!hasMultipleLocations) {
+                onDayClick(day, defaultLocationId);
+              }
+            }}
             onContextMenu={(e) => {
               e.preventDefault();
               if (onDayRightClick) {
@@ -194,8 +407,6 @@ export function CalendarGrid({
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onTouchMove={handleTouchEnd}
-            disabled={isToggling}
-            whileTap={{ scale: 0.95 }}
             style={{
               WebkitUserSelect: "none",
               userSelect: "none",
@@ -205,9 +416,7 @@ export function CalendarGrid({
                   backgroundColor: `${highlightColor}15`,
                   borderColor: `${highlightColor}40`,
                 }),
-              // Event border styling (overrides highlight if both present)
               ...eventBorderStyle,
-              // Multi-event gradient border using background trick to support border-radius
               ...(hasMultiEventBorder && {
                 backgroundImage: `linear-gradient(var(--background), var(--background)), linear-gradient(to right, ${dayEvents
                   .map((e) => e.color || "#3b82f6")
@@ -218,18 +427,20 @@ export function CalendarGrid({
               }),
             }}
             className={`
-              min-h-25 sm:min-h-28 px-1 py-1.5 sm:p-2.5 rounded-md sm:rounded-lg text-sm transition-all relative flex flex-col border sm:border-2
+              min-h-25 sm:min-h-28 px-1 py-1.5 sm:p-2 rounded-md sm:rounded-lg text-sm transition-all relative flex flex-col border sm:border-2
               ${isCurrentMonth ? "text-foreground" : "text-muted-foreground/50"}
               ${
                 isTodayDate
                   ? "border-primary shadow-lg shadow-primary/20 bg-primary/5 ring-2 ring-primary/20"
                   : dayEvent
-                    ? "" // Event border is handled by inline style
+                    ? ""
                     : "border-border/30 sm:border-border/50"
               }
               ${
                 isCurrentMonth
-                  ? "hover:bg-accent cursor-pointer active:bg-accent/80 hover:border-border"
+                  ? hasMultipleLocations
+                    ? "hover:border-border"
+                    : "hover:bg-accent cursor-pointer active:bg-accent/80 hover:border-border"
                   : selectedPresetId
                     ? "cursor-not-allowed"
                     : "cursor-pointer"
@@ -238,14 +449,14 @@ export function CalendarGrid({
               ${isToggling ? "opacity-50 cursor-wait pointer-events-none" : ""}
             `}
           >
+            {/* Header: Date number & note/event labels */}
             <div
-              className={`text-sm sm:text-sm font-semibold mb-1 flex items-center justify-between gap-1 ${
+              className={`text-sm sm:text-sm font-semibold mb-1 flex items-center justify-between gap-1 shrink-0 ${
                 isTodayDate ? "text-primary" : ""
               }`}
             >
               <span className="shrink-0">{day.getDate()}</span>
               <div className="flex items-center gap-1 min-w-0">
-                {/* Multi-indicator badge when multiple notes/events exist */}
                 {totalNotesCount > 1 && (
                   <span
                     className={`inline-flex items-center justify-center text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 ${
@@ -253,9 +464,7 @@ export function CalendarGrid({
                         ? "cursor-pointer hover:bg-primary/30 transition-colors"
                         : ""
                     }`}
-                    title={t("note.multipleEntries", {
-                      count: totalNotesCount,
-                    })}
+                    title={t("note.multipleEntries", { count: totalNotesCount })}
                     onClick={(e) => {
                       if (!selectedPresetId && onNoteIconClick) {
                         e.stopPropagation();
@@ -266,7 +475,6 @@ export function CalendarGrid({
                     {totalNotesCount}
                   </span>
                 )}
-                {/* Display first event title - clickable if no preset selected */}
                 {dayEvent && totalNotesCount === 1 && (
                   <span
                     className={`text-[10px] sm:text-xs font-medium truncate opacity-75 min-w-0 ${
@@ -286,7 +494,6 @@ export function CalendarGrid({
                     {dayEvent.note}
                   </span>
                 )}
-                {/* Display first note title if no event and only one entry - clickable if no preset selected */}
                 {!dayEvent && dayNote && totalNotesCount === 1 && (
                   <span
                     className={`text-[10px] sm:text-xs font-medium text-orange-500 truncate opacity-75 min-w-0 ${
@@ -307,262 +514,60 @@ export function CalendarGrid({
                 )}
               </div>
             </div>
-            <div className="flex-1 space-y-0.5 sm:space-y-1 overflow-visible">
-              {(() => {
-                // Separate shifts by sync displayMode
-                const syncedShiftsByMode: {
-                  [key: string]: ShiftWithCalendar[];
-                } = {};
 
-                dayShifts.forEach((shift) => {
-                  if (shift.syncedFromExternal && shift.externalSyncId) {
-                    const sync = externalSyncs.find(
-                      (s) => s.id === shift.externalSyncId,
-                    );
-                    const displayMode = sync?.displayMode || "normal";
-
-                    if (displayMode === "minimal") {
-                      if (!syncedShiftsByMode[shift.externalSyncId]) {
-                        syncedShiftsByMode[shift.externalSyncId] = [];
-                      }
-                      syncedShiftsByMode[shift.externalSyncId].push(shift);
+            {/* Grid Field Content: Vertical splitting for each location */}
+            {hasMultipleLocations ? (
+              <div
+                className="flex-1 grid divide-x divide-border/40 -mx-1 sm:-mx-1.5 -mb-1"
+                style={{
+                  gridTemplateColumns: `repeat(${locations.length}, minmax(0, 1fr))`,
+                }}
+              >
+                {locations.map((loc, locIndex) => {
+                  // Filter shifts for this specific location
+                  const locShifts = dayShifts.filter((s) => {
+                    if (s.locationId) {
+                      return s.locationId === loc.id;
                     }
-                  }
-                });
+                    // If shift has no locationId, assign to first location
+                    return locIndex === 0;
+                  });
 
-                // Get shifts to display normally - separate regular from external
-                const regularShifts = dayShifts.filter(
-                  (s) => !s.syncedFromExternal,
-                );
-                const externalNormalShifts = dayShifts.filter((s) => {
-                  if (!s.syncedFromExternal) return false;
-                  if (!s.externalSyncId) return false;
-                  const sync = externalSyncs.find(
-                    (sync) => sync.id === s.externalSyncId,
+                  return (
+                    <div
+                      key={loc.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDayClick(day, loc.id);
+                      }}
+                      className="px-1 sm:px-1.5 py-0.5 flex flex-col min-h-full cursor-pointer hover:bg-primary/5 transition-colors rounded-sm group/loc"
+                    >
+                      {/* Name of location on top of each split grid field as a label */}
+                      <div
+                        className="text-[9px] sm:text-[10px] font-semibold px-1 py-0.5 mb-1 rounded bg-muted/60 text-foreground/80 group-hover/loc:bg-primary/15 group-hover/loc:text-primary transition-colors flex items-center justify-center gap-1 border-b border-border/30"
+                        title={loc.name}
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full shrink-0"
+                          style={{ backgroundColor: loc.color || "#3b82f6" }}
+                        />
+                        <span className="truncate">{loc.name}</span>
+                      </div>
+
+                      {/* Shifts for this location */}
+                      <div className="flex-1">
+                        {renderShiftsGroup(locShifts, day)}
+                      </div>
+                    </div>
                   );
-                  return sync && sync.displayMode === "normal";
-                });
-
-                // Apply sorting based on mode
-                let sortedRegularShifts: ShiftWithCalendar[];
-                let sortedExternalNormalShifts: ShiftWithCalendar[];
-                let allSortedShifts: ShiftWithCalendar[];
-
-                if (combinedSortMode) {
-                  // Combined mode: sort all shifts together
-                  const allNormalShifts = [
-                    ...regularShifts,
-                    ...externalNormalShifts,
-                  ];
-                  allSortedShifts = sortShifts(allNormalShifts);
-                  // Keep the separate arrays for individual limits
-                  sortedRegularShifts = sortShifts(regularShifts);
-                  sortedExternalNormalShifts = sortShifts(externalNormalShifts);
-                } else {
-                  // Separate mode: sort each group separately
-                  sortedRegularShifts = sortShifts(regularShifts);
-                  sortedExternalNormalShifts = sortShifts(externalNormalShifts);
-                  allSortedShifts = [];
-                }
-
-                // Pre-compute index maps to avoid O(n²) complexity during rendering
-                const regularIndexMap = new Map<string, number>();
-                const externalIndexMap = new Map<string, number>();
-
-                if (combinedSortMode) {
-                  sortedRegularShifts.forEach((shift, index) => {
-                    regularIndexMap.set(shift.id, index);
-                  });
-                  sortedExternalNormalShifts.forEach((shift, index) => {
-                    externalIndexMap.set(shift.id, index);
-                  });
-                }
-
-                // Calculate total hidden shifts for unified display
-                const hiddenRegularCount =
-                  maxShiftsToShow !== undefined
-                    ? Math.max(0, sortedRegularShifts.length - maxShiftsToShow)
-                    : 0;
-                const hiddenExternalCount =
-                  maxExternalShiftsToShow !== undefined
-                    ? Math.max(
-                        0,
-                        sortedExternalNormalShifts.length -
-                          maxExternalShiftsToShow,
-                      )
-                    : 0;
-                const totalHiddenCount =
-                  hiddenRegularCount + hiddenExternalCount;
-
-                // Filter to get all displayable shifts (regular + external with normal display mode)
-                const displayableShifts = dayShifts.filter(
-                  (s) =>
-                    !s.syncedFromExternal ||
-                    (s.externalSyncId &&
-                      externalSyncs.find((sync) => sync.id === s.externalSyncId)
-                        ?.displayMode === "normal"),
-                );
-
-                return (
-                  <>
-                    {combinedSortMode ? (
-                      // Combined mode: display all shifts together sorted, but respect individual limits
-                      <>
-                        {/* Display combined sorted shifts with individual limits */}
-                        {allSortedShifts.map((shift) => {
-                          const isRegular = !shift.syncedFromExternal;
-                          const regularIndex = isRegular
-                            ? (regularIndexMap.get(shift.id) ?? -1)
-                            : -1;
-                          const externalIndex = !isRegular
-                            ? (externalIndexMap.get(shift.id) ?? -1)
-                            : -1;
-
-                          // Check if shift should be displayed based on its type's limit
-                          const shouldDisplay =
-                            (isRegular &&
-                              (maxShiftsToShow === undefined ||
-                                regularIndex < maxShiftsToShow)) ||
-                            (!isRegular &&
-                              (maxExternalShiftsToShow === undefined ||
-                                externalIndex < maxExternalShiftsToShow));
-
-                          if (!shouldDisplay) return null;
-
-                          return (
-                            <CalendarShiftCard
-                              key={shift.id}
-                              shift={shift}
-                              showShiftNotes={showShiftNotes}
-                              showFullTitles={showFullTitles}
-                              onEditShift={
-                                !selectedPresetId ? onEditShift : undefined
-                              }
-                            />
-                          );
-                        })}
-
-                        {/* Show unified "+X shifts" when there are hidden shifts from either type */}
-                        {totalHiddenCount > 0 && (
-                          <div
-                            onClick={(e) => {
-                              if (selectedPresetId) return;
-                              e.stopPropagation();
-                              // Show all shifts dialog with all day shifts
-                              onShowAllShifts?.(day, displayableShifts);
-                            }}
-                            className={`text-[10px] sm:text-xs text-primary font-semibold text-center pt-0.5 transition-colors ${
-                              selectedPresetId
-                                ? "cursor-not-allowed opacity-50"
-                                : "hover:text-primary/80 hover:underline cursor-pointer"
-                            }`}
-                          >
-                            +{totalHiddenCount}{" "}
-                            {totalHiddenCount === 1
-                              ? t("shift.shift_one")
-                              : t("common.shifts")}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      // Separate mode: display regular and external shifts separately
-                      <>
-                        {/* Display regular shifts */}
-                        {(maxShiftsToShow === undefined
-                          ? sortedRegularShifts
-                          : sortedRegularShifts.slice(0, maxShiftsToShow)
-                        ).map((shift) => (
-                          <CalendarShiftCard
-                            key={shift.id}
-                            shift={shift}
-                            showShiftNotes={showShiftNotes}
-                            showFullTitles={showFullTitles}
-                            onEditShift={
-                              !selectedPresetId ? onEditShift : undefined
-                            }
-                          />
-                        ))}
-
-                        {/* Display external shifts with normal display mode */}
-                        {(maxExternalShiftsToShow === undefined
-                          ? sortedExternalNormalShifts
-                          : sortedExternalNormalShifts.slice(
-                              0,
-                              maxExternalShiftsToShow,
-                            )
-                        ).map((shift) => (
-                          <CalendarShiftCard
-                            key={shift.id}
-                            shift={shift}
-                            showShiftNotes={showShiftNotes}
-                            showFullTitles={showFullTitles}
-                            onEditShift={
-                              !selectedPresetId ? onEditShift : undefined
-                            }
-                          />
-                        ))}
-
-                        {/* Show unified "+X shifts" when there are hidden shifts from either type */}
-                        {totalHiddenCount > 0 && (
-                          <div
-                            onClick={(e) => {
-                              if (selectedPresetId) return;
-                              e.stopPropagation();
-                              // Show all shifts dialog with all day shifts
-                              onShowAllShifts?.(day, displayableShifts);
-                            }}
-                            className={`text-[10px] sm:text-xs text-primary font-semibold text-center pt-0.5 transition-colors ${
-                              selectedPresetId
-                                ? "cursor-not-allowed opacity-50"
-                                : "hover:text-primary/80 hover:underline cursor-pointer"
-                            }`}
-                          >
-                            +{totalHiddenCount}{" "}
-                            {totalHiddenCount === 1
-                              ? t("shift.shift_one")
-                              : t("common.shifts")}
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* Show minimal badges for each sync with minimal display mode */}
-                    {Object.entries(syncedShiftsByMode).map(
-                      ([syncId, syncShifts]) => {
-                        const sync = externalSyncs.find((s) => s.id === syncId);
-                        if (!sync || syncShifts.length === 0) return null;
-
-                        return (
-                          <div
-                            key={syncId}
-                            onClick={(e) => {
-                              if (selectedPresetId) return;
-                              e.stopPropagation();
-                              onShowSyncedShifts?.(day, syncShifts);
-                            }}
-                            className={`text-[10px] sm:text-xs px-1 py-0.5 sm:px-1.5 sm:py-1 rounded bg-muted/50 border border-border/50 text-muted-foreground transition-colors text-center ${
-                              selectedPresetId
-                                ? "cursor-not-allowed opacity-50"
-                                : "hover:bg-muted hover:text-foreground cursor-pointer"
-                            }`}
-                            style={{
-                              borderLeftColor: sync.color,
-                              borderLeftWidth: "2px",
-                            }}
-                          >
-                            <span className="flex items-center justify-center gap-1">
-                              <span>+{syncShifts.length}</span>
-                              <RefreshCw className="h-3 w-3" />
-                            </span>
-                          </div>
-                        );
-                      },
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-          </motion.button>
+                })}
+              </div>
+            ) : (
+              <div className="flex-1 overflow-visible">
+                {renderShiftsGroup(dayShifts, day)}
+              </div>
+            )}
+          </motion.div>
         );
       })}
     </div>

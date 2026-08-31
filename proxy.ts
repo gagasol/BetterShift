@@ -366,7 +366,6 @@ export async function proxy(request: NextRequest) {
 
   // Security Headers (Defense in Depth)
   response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-XSS-Protection", "1; mode=block");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
@@ -378,7 +377,6 @@ export async function proxy(request: NextRequest) {
     "img-src 'self' data: https:",
     "font-src 'self' data:",
     "connect-src 'self'",
-    "frame-ancestors 'none'",
   ].join("; ");
   response.headers.set("Content-Security-Policy", csp);
 

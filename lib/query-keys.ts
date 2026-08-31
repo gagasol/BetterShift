@@ -25,6 +25,10 @@ export const queryKeys = {
     all: ["notes"] as const,
     byCalendar: (calendarId: string) => ["notes", calendarId] as const,
   },
+  locations: {
+    all: ["locations"] as const,
+    byCalendar: (calendarId: string) => ["locations", calendarId] as const,
+  },
   stats: {
     shifts: (calendarId: string, period: string, date: string) =>
       ["stats", "shifts", calendarId, period, date] as const,

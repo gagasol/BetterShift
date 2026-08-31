@@ -815,5 +815,21 @@
     "clearSelection": "Limpiar selección",
     "deleteSelectedLogsDescription": "Eliminar {count, plural, one {# registro seleccionado} other {# registros seleccionados}}. Esta acción no se puede deshacer.",
     "willDeleteSelectedLogs": "{count, plural, one {# registro} other {# registros}} se borrarán permanentemente"
+  },
+  "location": {
+    "location": "Ubicación",
+    "locations": "Ubicaciones",
+    "manageLocations": "Gestionar ubicaciones",
+    "manageLocationsDescription": "Cada calendario admite múltiples ubicaciones. La cuadrícula se divide verticalmente para cada ubicación.",
+    "addLocation": "Añadir ubicación",
+    "editLocation": "Editar ubicación",
+    "deleteLocation": "Eliminar ubicación",
+    "locationName": "Nombre de ubicación",
+    "locationNamePlaceholder": "p. ej., Sala 1, Planta 2, Sucursal A",
+    "locationColor": "Color de ubicación",
+    "defaultLocation": "Ubicación principal",
+    "cannotDeleteLast": "Un calendario debe tener al menos una ubicación",
+    "deleteConfirm": "¿Eliminar ubicación \"{name}\"? Los turnos se moverán a la ubicación principal.",
+    "selectLocation": "Seleccionar ubicación"
   }
 }

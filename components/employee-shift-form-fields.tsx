@@ -6,10 +6,13 @@ import { ColorPicker } from "@/components/ui/color-picker";
 import { ShiftFormData } from "@/components/shift-sheet";
 import { PRESET_COLORS } from "@/lib/constants";
 import { CalendarMember } from "@/hooks/useCalendarMembers";
+import { CalendarLocation } from "@/lib/types";
+import { MapPin } from "lucide-react";
 
 interface EmployeeShiftFormFieldsProps {
   formData: ShiftFormData;
   onFormDataChange: (data: ShiftFormData) => void;
+  locations?: CalendarLocation[];
   onBlur?: () => void;
   readOnly?: boolean;
   members?: CalendarMember[];
@@ -19,6 +22,7 @@ interface EmployeeShiftFormFieldsProps {
 export function EmployeeShiftFormFields({
   formData,
   onFormDataChange,
+  locations = [],
   onBlur,
   readOnly = false,
   members,
@@ -26,8 +30,49 @@ export function EmployeeShiftFormFields({
 }: EmployeeShiftFormFieldsProps) {
   const t = useTranslations();
 
+  const selectedLoc = locations.find((l) => l.id === formData.locationId) || locations[0];
+
   return (
     <div className="space-y-5">
+      {/* Location (on the top of form) */}
+      {(locations.length > 0 || formData.locationId) && (
+        <div className="space-y-2.5">
+          <Label
+            htmlFor="employee-shift-location"
+            className="text-sm font-medium flex items-center gap-2"
+          >
+            <MapPin className="w-4 h-4 text-primary" />
+            {t("location.location")}
+          </Label>
+          {locations.length > 1 ? (
+            <select
+              id="employee-shift-location"
+              value={formData.locationId || locations[0]?.id}
+              disabled={readOnly}
+              className="flex h-11 w-full rounded-md border border-border/50 bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus:border-primary/50 focus:ring-primary/20"
+              onChange={(e) => {
+                onFormDataChange({ ...formData, locationId: e.target.value });
+              }}
+              onBlur={onBlur}
+            >
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-md border border-border/40 bg-muted/30 text-sm font-medium text-foreground">
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: selectedLoc?.color || "#3b82f6" }}
+              />
+              <span>{selectedLoc?.name || t("location.defaultLocation")}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Employee Selection */}
       <div className="space-y-2.5">
         <Label htmlFor="employee" className="text-sm font-medium flex items-center gap-2">

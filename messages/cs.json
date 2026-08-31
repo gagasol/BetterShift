@@ -815,5 +815,21 @@
     "clearSelection": "Zrušit výběr",
     "deleteSelectedLogsDescription": "Smazat {count, plural, one {# vybraný protokol} few {# vybrané protokoly} other {# vybraných protokolů}}. Tuto akci nelze vrátit zpět.",
     "willDeleteSelectedLogs": "{count, plural, one {# protokol} few {# protokoly} other {# protokolů}} bude trvale smazáno"
+  },
+  "location": {
+    "location": "Místo",
+    "locations": "Místa",
+    "manageLocations": "Spravovat místa",
+    "manageLocationsDescription": "Každý kalendář podporuje více míst. Mřížka kalendáře se pro každé místo svisle rozdělí.",
+    "addLocation": "Přidat místo",
+    "editLocation": "Upravit místo",
+    "deleteLocation": "Smazat místo",
+    "locationName": "Název místa",
+    "locationNamePlaceholder": "např. Místnost 1, Patro 2, Pobočka A",
+    "locationColor": "Barva místa",
+    "defaultLocation": "Hlavní místo",
+    "cannotDeleteLast": "Kalendář musí mít alespoň jedno místo",
+    "deleteConfirm": "Smazat místo \"{name}\"? Všechny směny budou přesunuty do hlavního místa.",
+    "selectLocation": "Vybrat místo"
   }
 }

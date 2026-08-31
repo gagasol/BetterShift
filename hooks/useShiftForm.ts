@@ -4,12 +4,14 @@ import { ShiftPreset } from "@/lib/db/schema";
 import { ShiftWithCalendar } from "@/lib/types";
 import { formatDateToLocal } from "@/lib/date-utils";
 import { usePresets } from "@/hooks/usePresets";
+import { useCalendarLocations } from "@/hooks/useCalendarLocations";
 
 interface UseShiftFormOptions {
   open: boolean;
   shift?: ShiftWithCalendar;
   selectedDate?: Date;
   calendarId?: string;
+  selectedLocationId?: string;
 }
 
 export function useShiftForm({
@@ -17,7 +19,15 @@ export function useShiftForm({
   shift,
   selectedDate,
   calendarId,
+  selectedLocationId,
 }: UseShiftFormOptions) {
+  const { locations } = useCalendarLocations(calendarId || null);
+
+  const defaultLocId =
+    shift?.locationId ||
+    selectedLocationId ||
+    (locations.length > 0 ? locations[0].id : undefined);
+
   const [formData, setFormData] = useState<ShiftFormData>({
     date:
       shift?.date && shift.date instanceof Date
@@ -31,6 +41,7 @@ export function useShiftForm({
     notes: shift?.notes || "",
     color: shift?.color || "#3b82f6",
     isAllDay: false,
+    locationId: defaultLocId,
   });
 
   const { presets, createPreset } = usePresets(calendarId);
@@ -68,6 +79,7 @@ export function useShiftForm({
   };
 
   const resetForm = () => {
+    const locId = selectedLocationId || (locations.length > 0 ? locations[0].id : undefined);
     setFormData({
       date: selectedDate
         ? formatDateToLocal(selectedDate)
@@ -78,6 +90,7 @@ export function useShiftForm({
       notes: "",
       color: "#3b82f6",
       isAllDay: false,
+      locationId: locId,
     });
     setPresetName("");
     setSaveAsPreset(false);
@@ -90,7 +103,12 @@ export function useShiftForm({
   // Only update on mount or when key changes
   useEffect(() => {
     if (open) {
-      const newFormData = {
+      const locId =
+        shift?.locationId ||
+        selectedLocationId ||
+        (locations.length > 0 ? locations[0].id : undefined);
+
+      const newFormData: ShiftFormData = {
         date:
           shift?.date && shift.date instanceof Date
             ? formatDateToLocal(shift.date)
@@ -103,6 +121,7 @@ export function useShiftForm({
         notes: shift?.notes || "",
         color: shift?.color || "#3b82f6",
         isAllDay: shift?.isAllDay || false,
+        locationId: locId,
       };
 
       // Compare form data fields directly
@@ -113,7 +132,8 @@ export function useShiftForm({
         formDataRef.current.title !== newFormData.title ||
         formDataRef.current.notes !== newFormData.notes ||
         formDataRef.current.color !== newFormData.color ||
-        formDataRef.current.isAllDay !== newFormData.isAllDay;
+        formDataRef.current.isAllDay !== newFormData.isAllDay ||
+        formDataRef.current.locationId !== newFormData.locationId;
 
       if (needsUpdate) {
         setFormData(newFormData);
@@ -122,12 +142,13 @@ export function useShiftForm({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, shift?.id, selectedDate?.toString()]);
+  }, [open, shift?.id, selectedDate?.toString(), selectedLocationId, locations]);
 
   return {
     formData,
     setFormData,
     presets,
+    locations,
     saveAsPreset,
     setSaveAsPreset,
     presetName,

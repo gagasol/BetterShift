@@ -7,6 +7,13 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   ...pluginQuery.configs["flat/recommended"],
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/immutability": "off",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

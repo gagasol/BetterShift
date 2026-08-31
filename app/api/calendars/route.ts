@@ -5,6 +5,7 @@ import {
   shifts,
   calendarShares,
   userCalendarSubscriptions,
+  calendarLocations,
 } from "@/lib/db/schema";
 import { sql, eq, or, and } from "drizzle-orm";
 import { getSessionUser } from "@/lib/auth/sessions";
@@ -155,6 +156,17 @@ export async function POST(request: NextRequest) {
         guestPermission: guestPermission || "none",
       })
       .returning();
+
+    // Create default location (default: 1 location)
+    if (calendar) {
+      await db.insert(calendarLocations).values({
+        calendarId: calendar.id,
+        name: "Main Location",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
 
     // Log calendar creation event
     if (user) {

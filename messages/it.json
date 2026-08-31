@@ -815,5 +815,21 @@
     "clearSelection": "Cancella Selezione",
     "deleteSelectedLogsDescription": "Elimina {count, plural, one {# log selezionato} other {# log selezionati}}. Questa azione non può essere annullata.",
     "willDeleteSelectedLogs": "{count, plural, one {# log} other {# log}} verranno eliminati permanentemente"
+  },
+  "location": {
+    "location": "Posizione",
+    "locations": "Posizioni",
+    "manageLocations": "Gestisci posizioni",
+    "manageLocationsDescription": "Ogni calendario supporta più posizioni. La griglia si divide verticalmente per ciascuna posizione.",
+    "addLocation": "Aggiungi posizione",
+    "editLocation": "Modifica posizione",
+    "deleteLocation": "Elimina posizione",
+    "locationName": "Nome posizione",
+    "locationNamePlaceholder": "es. Stanza 1, Piano 2, Filiale A",
+    "locationColor": "Colore posizione",
+    "defaultLocation": "Posizione principale",
+    "cannotDeleteLast": "Un calendario deve avere almeno una posizione",
+    "deleteConfirm": "Eliminare la posizione \"{name}\"? I turni verranno spostati nella posizione principale.",
+    "selectLocation": "Seleziona posizione"
   }
 }
