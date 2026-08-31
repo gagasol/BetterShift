@@ -1107,14 +1107,14 @@ export function ReportAbsenceSheet({
               <div
                 className={`space-y-4 p-4 rounded-xl border transition-all ${
                   entryConflict
-                    ? "border-2 border-destructive bg-destructive/5 ring-2 ring-destructive/30 shadow-md shadow-destructive/10"
+                    ? "border border-destructive/60 bg-destructive/[0.02]"
                     : "border-border/60 bg-muted/10"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div
                     className={`text-xs font-semibold flex items-center gap-2 ${
-                      entryConflict ? "text-destructive font-bold" : "text-foreground"
+                      entryConflict ? "text-destructive" : "text-foreground"
                     }`}
                   >
                     <Plus
@@ -1125,7 +1125,7 @@ export function ReportAbsenceSheet({
                     {t("absence.addNewPeriod", { default: "Add a Date / Period to List" })}
                   </div>
                   {entryConflict && (
-                    <span className="text-[11px] font-bold text-destructive flex items-center gap-1 bg-destructive/15 px-2 py-0.5 rounded-full border border-destructive/30">
+                    <span className="text-[11px] font-medium text-destructive flex items-center gap-1 bg-destructive/10 px-2 py-0.5 rounded-full border border-destructive/30">
                       <AlertCircle className="w-3.5 h-3.5" />
                       {t("common.conflict", { default: "Conflict detected" })}
                     </span>
@@ -1138,7 +1138,7 @@ export function ReportAbsenceSheet({
                     <Label
                       htmlFor="nonrec-from-date"
                       className={`text-xs font-medium ${
-                        entryConflict ? "text-destructive font-semibold" : ""
+                        entryConflict ? "text-destructive" : ""
                       }`}
                     >
                       {t("absence.fromDate", { default: "From Date" })}
@@ -1150,7 +1150,7 @@ export function ReportAbsenceSheet({
                       onChange={(e) => handleFromDateChange(e.target.value)}
                       className={`h-10 transition-colors ${
                         entryConflict
-                          ? "border-2 border-destructive focus-visible:ring-destructive bg-destructive/10 text-destructive font-semibold ring-1 ring-destructive/40"
+                          ? "border-destructive/60 focus-visible:ring-destructive/40 bg-background"
                           : "border-border/50 bg-background"
                       }`}
                     />
@@ -1159,7 +1159,7 @@ export function ReportAbsenceSheet({
                     <Label
                       htmlFor="nonrec-to-date"
                       className={`text-xs font-medium ${
-                        entryConflict ? "text-destructive font-semibold" : ""
+                        entryConflict ? "text-destructive" : ""
                       }`}
                     >
                       {t("absence.toDate", { default: "To Date" })}
@@ -1174,7 +1174,7 @@ export function ReportAbsenceSheet({
                       }}
                       className={`h-10 transition-colors ${
                         entryConflict
-                          ? "border-2 border-destructive focus-visible:ring-destructive bg-destructive/10 text-destructive font-semibold ring-1 ring-destructive/40"
+                          ? "border-destructive/60 focus-visible:ring-destructive/40 bg-background"
                           : "border-border/50 bg-background"
                       }`}
                     />
@@ -1186,7 +1186,7 @@ export function ReportAbsenceSheet({
                   <motion.div
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-start gap-2.5 p-3 rounded-lg bg-destructive/15 border-2 border-destructive/40 text-xs text-destructive font-medium shadow-sm"
+                    className="flex items-start gap-2.5 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive font-medium"
                   >
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-destructive" />
                     <span className="leading-relaxed">
@@ -1219,7 +1219,7 @@ export function ReportAbsenceSheet({
                           nonRecAllDay
                             ? "text-muted-foreground"
                             : entryConflict
-                            ? "text-destructive font-semibold"
+                            ? "text-destructive"
                             : ""
                         }`}
                       >
@@ -1235,7 +1235,7 @@ export function ReportAbsenceSheet({
                           nonRecAllDay
                             ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60 border-border/50"
                             : entryConflict
-                            ? "border-2 border-destructive bg-destructive/10 text-destructive font-medium"
+                            ? "border-destructive/60 focus-visible:ring-destructive/40 bg-background"
                             : "bg-background border-border/50"
                         }`}
                       />
@@ -1247,7 +1247,7 @@ export function ReportAbsenceSheet({
                           nonRecAllDay
                             ? "text-muted-foreground"
                             : entryConflict
-                            ? "text-destructive font-semibold"
+                            ? "text-destructive"
                             : ""
                         }`}
                       >
@@ -1263,7 +1263,7 @@ export function ReportAbsenceSheet({
                           nonRecAllDay
                             ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60 border-border/50"
                             : entryConflict
-                            ? "border-2 border-destructive bg-destructive/10 text-destructive font-medium"
+                            ? "border-destructive/60 focus-visible:ring-destructive/40 bg-background"
                             : "bg-background border-border/50"
                         }`}
                       />
