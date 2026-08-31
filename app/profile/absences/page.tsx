@@ -24,6 +24,7 @@ import {
   Repeat,
   Trash2,
   Edit2,
+  ArrowLeft,
 } from "lucide-react";
 import { Absence } from "@/lib/types";
 import { formatDateToDDMMYYYY } from "@/lib/date-utils";
@@ -137,6 +138,20 @@ export default function UserAbsencesPage() {
       <AuthHeader />
 
       <main className="container max-w-4xl mx-auto px-4 py-8 flex-1 space-y-6">
+        {/* Navigation Return Button */}
+        <div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="gap-2 text-muted-foreground hover:text-foreground -ml-2 h-8 px-2.5"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>{t("common.back", { default: "Back" })}</span>
+          </Button>
+        </div>
+
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

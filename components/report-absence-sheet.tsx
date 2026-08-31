@@ -16,11 +16,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCalendarMembers } from "@/hooks/useCalendarMembers";
-import { useAbsenceMutations, useCalendarAbsences } from "@/hooks/useAbsences";
+import {
+  useAbsenceMutations,
+  useCalendarAbsences,
+  useUserAbsences,
+} from "@/hooks/useAbsences";
 import { useAuth } from "@/hooks/useAuth";
 import { useCalendarPermission } from "@/hooks/useCalendarPermission";
-import { formatDateToLocal, formatDateToDDMMYYYY, parseLocalDate } from "@/lib/date-utils";
-import { isDateInAbsence } from "@/lib/absence-utils";
+import { formatDateToLocal, formatDateToDDMMYYYY } from "@/lib/date-utils";
+import {
+  isDateInAbsence,
+  doTimesOverlap,
+  normalizeDateToLocalString,
+} from "@/lib/absence-utils";
 import { CalendarWithCount, Absence } from "@/lib/types";
 import {
   CalendarOff,
@@ -61,15 +69,17 @@ export function ReportAbsenceSheet({
 }: ReportAbsenceSheetProps) {
   const t = useTranslations();
   const { user } = useAuth();
-  const { members = [], isLoading: membersLoading } = useCalendarMembers(calendarId);
-  const { absences: calendarAbsences = [] } = useCalendarAbsences(calendarId);
+  const [selectedCalId, setSelectedCalId] = useState(calendarId);
+  const activeCalId = selectedCalId || calendarId;
+
+  const { members = [], isLoading: membersLoading } = useCalendarMembers(activeCalId);
+  const { absences: calendarAbsences = [] } = useCalendarAbsences(activeCalId);
+  const { absences: userAbsences = [] } = useUserAbsences();
   const { createAbsence, updateAbsence, isCreating, isUpdating } = useAbsenceMutations();
 
   const isEditing = !!editAbsence;
 
-  // Selected calendar if customizable
-  const [selectedCalId, setSelectedCalId] = useState(calendarId);
-  const permission = useCalendarPermission(selectedCalId || calendarId);
+  const permission = useCalendarPermission(activeCalId);
   // Only admins/owners or when auth is disabled can report absences for everyone
   const canReportOthers = permission.canEdit || permission.isOwner || !user;
 
@@ -81,12 +91,54 @@ export function ReportAbsenceSheet({
   const [isRecurring, setIsRecurring] = useState<boolean>(false);
 
   // Target user info for checks
+  const selectedMember = members.find((m) => m.id === selectedUserId);
   const effectiveUserId = canReportOthers
     ? selectedUserId || user?.id || null
     : user?.id || null;
   const effectiveUserName = canReportOthers
-    ? userName || members.find((m) => m.id === selectedUserId)?.name || user?.name || "Employee"
+    ? selectedMember?.name || userName || user?.name || "Employee"
     : user?.name || "Employee";
+
+  // Combine calendar-level absences and user-level absences for thorough overlap check
+  const allExistingAbsences = useMemo(() => {
+    const map = new Map<string, Absence>();
+    if (Array.isArray(calendarAbsences)) {
+      for (const a of calendarAbsences) {
+        if (a && a.id) map.set(a.id, a);
+      }
+    }
+    if (Array.isArray(userAbsences)) {
+      for (const a of userAbsences) {
+        if (a && a.id) map.set(a.id, a);
+      }
+    }
+    return Array.from(map.values());
+  }, [calendarAbsences, userAbsences]);
+
+  // Filter absences relevant to the target employee
+  const relevantAbsences = useMemo(() => {
+    const normalizedTargetName = (effectiveUserName || "").trim().toLowerCase();
+    return allExistingAbsences.filter((a) => {
+      if (isEditing && editAbsence && a.id === editAbsence.id) return false;
+      if (effectiveUserId && a.userId && a.userId === effectiveUserId) return true;
+      if (
+        normalizedTargetName &&
+        a.userName &&
+        a.userName.trim().toLowerCase() === normalizedTargetName
+      ) {
+        return true;
+      }
+      if (
+        effectiveUserId &&
+        "user" in a &&
+        typeof (a as { user?: { id?: string } }).user?.id === "string" &&
+        (a as { user?: { id?: string } }).user?.id === effectiveUserId
+      ) {
+        return true;
+      }
+      return false;
+    });
+  }, [allExistingAbsences, effectiveUserId, effectiveUserName, isEditing, editAbsence]);
 
   // Recurring state
   const [recurringStartDate, setRecurringStartDate] = useState<string>(() =>
@@ -130,8 +182,8 @@ export function ReportAbsenceSheet({
         setReason(editAbsence.reason || "");
         setIsRecurring(editAbsence.isRecurring);
 
-        const startStr = formatDateToLocal(new Date(editAbsence.startDate));
-        const endStr = formatDateToLocal(new Date(editAbsence.endDate));
+        const startStr = normalizeDateToLocalString(editAbsence.startDate);
+        const endStr = normalizeDateToLocalString(editAbsence.endDate);
 
         if (editAbsence.isRecurring) {
           setRecurringStartDate(startStr);
@@ -217,12 +269,15 @@ export function ReportAbsenceSheet({
     }
   };
 
-  // Check if current non-recurring inputs conflict with staged list or existing database absences (including recurring)
+  // Check if current non-recurring inputs conflict with staged list or existing database absences (including recurring and time checks)
   const entryConflict = useMemo(() => {
     if (isRecurring) return null;
     if (!nonRecStartDate || !nonRecEndDate) return null;
 
-    if (nonRecStartDate > nonRecEndDate) {
+    const startStr = normalizeDateToLocalString(nonRecStartDate);
+    const endStr = normalizeDateToLocalString(nonRecEndDate);
+
+    if (startStr > endStr) {
       return {
         type: "invalid_range" as const,
         message: t("absence.endBeforeStart", { default: "End date cannot be before start date" }),
@@ -232,9 +287,10 @@ export function ReportAbsenceSheet({
     // Generate list of all individual days in this range
     const dates: string[] = [];
     try {
-      const start = parseLocalDate(nonRecStartDate);
-      const end = parseLocalDate(nonRecEndDate);
-      const curr = new Date(start);
+      const [sY, sM, sD] = startStr.split("-").map(Number);
+      const [eY, eM, eD] = endStr.split("-").map(Number);
+      const curr = new Date(sY, sM - 1, sD);
+      const end = new Date(eY, eM - 1, eD);
       while (curr <= end) {
         dates.push(formatDateToLocal(curr));
         curr.setDate(curr.getDate() + 1);
@@ -243,42 +299,68 @@ export function ReportAbsenceSheet({
       return null;
     }
 
-    // 1. Check if any day is already in staged periodsList
+    // 1. Check if any day is already in staged periodsList WITH TIME OVERLAP
     for (const date of dates) {
-      const inList = periodsList.find((p) => date >= p.startDate && date <= p.endDate);
-      if (inList) {
-        return {
-          type: "in_list" as const,
-          date,
-          message: t("absence.conflictAlreadyInList", {
-            date: formatDateToDDMMYYYY(date),
-            default: `This date (${formatDateToDDMMYYYY(date)}) is already added to the list`,
-          }),
-        };
+      for (const staged of periodsList) {
+        const pStart = normalizeDateToLocalString(staged.startDate);
+        const pEnd = normalizeDateToLocalString(staged.endDate);
+        if (date >= pStart && date <= pEnd) {
+          const overlap = doTimesOverlap(
+            nonRecAllDay,
+            nonRecStartTime,
+            nonRecEndTime,
+            staged.isAllDay,
+            staged.startTime,
+            staged.endTime
+          );
+          if (overlap) {
+            const timeDetails =
+              !nonRecAllDay && !staged.isAllDay
+                ? ` (${nonRecStartTime}-${nonRecEndTime} vs ${staged.startTime}-${staged.endTime})`
+                : "";
+            return {
+              type: "in_list" as const,
+              date,
+              message: `${t("absence.conflictAlreadyInList", {
+                date: formatDateToDDMMYYYY(date),
+                default: `This date (${formatDateToDDMMYYYY(date)}) is already in the list`,
+              })}${timeDetails}`,
+            };
+          }
+        }
       }
     }
 
-    // 2. Check if user is already reported absent on any day in this range (including recurring absences)
-    const normalizedTargetName = effectiveUserName.trim().toLowerCase();
-    const relevantAbsences = calendarAbsences.filter((a) => {
-      if (isEditing && editAbsence && a.id === editAbsence.id) return false;
-      if (effectiveUserId && a.userId && a.userId === effectiveUserId) return true;
-      if (normalizedTargetName && a.userName && a.userName.trim().toLowerCase() === normalizedTargetName) return true;
-      return false;
-    });
-
+    // 2. Check if user is already reported absent on any day in this range (including recurring absences) WITH TIME OVERLAP
     for (const date of dates) {
       for (const absence of relevantAbsences) {
         if (isDateInAbsence(date, absence)) {
-          return {
-            type: "already_absent" as const,
-            date,
-            absence,
-            message: `${t("absence.conflictAlreadyAbsent", {
-              date: formatDateToDDMMYYYY(date),
-              default: `Employee is already reported as absent on this day (${formatDateToDDMMYYYY(date)})`,
-            })}${absence.isRecurring ? ` (${t("absence.recurring", { default: "Recurring" })})` : ""}`,
-          };
+          const overlap = doTimesOverlap(
+            nonRecAllDay,
+            nonRecStartTime,
+            nonRecEndTime,
+            absence.isAllDay,
+            absence.startTime,
+            absence.endTime
+          );
+          if (overlap) {
+            const recNote = absence.isRecurring
+              ? ` [${t("absence.recurring", { default: "Recurring" })}]`
+              : "";
+            const timeNote =
+              !nonRecAllDay && !absence.isAllDay
+                ? ` (${nonRecStartTime}-${nonRecEndTime} vs ${absence.startTime}-${absence.endTime})`
+                : "";
+            return {
+              type: "already_absent" as const,
+              date,
+              absence,
+              message: `${t("absence.conflictAlreadyAbsent", {
+                date: formatDateToDDMMYYYY(date),
+                default: `Employee is already reported as absent on ${formatDateToDDMMYYYY(date)}`,
+              })}${recNote}${timeNote}`,
+            };
+          }
         }
       }
     }
@@ -288,19 +370,22 @@ export function ReportAbsenceSheet({
     isRecurring,
     nonRecStartDate,
     nonRecEndDate,
+    nonRecAllDay,
+    nonRecStartTime,
+    nonRecEndTime,
     periodsList,
-    effectiveUserName,
-    effectiveUserId,
-    calendarAbsences,
-    isEditing,
-    editAbsence,
+    relevantAbsences,
     t,
   ]);
 
   // Check if an item in the periods list has a conflict with existing database absences
   const getPeriodConflict = (item: NonRecurringPeriod) => {
     if (isRecurring || !item.startDate || !item.endDate) return null;
-    if (item.startDate > item.endDate) {
+
+    const startStr = normalizeDateToLocalString(item.startDate);
+    const endStr = normalizeDateToLocalString(item.endDate);
+
+    if (startStr > endStr) {
       return {
         type: "invalid_range" as const,
         message: t("absence.endBeforeStart", { default: "End date cannot be before start date" }),
@@ -309,9 +394,10 @@ export function ReportAbsenceSheet({
 
     const dates: string[] = [];
     try {
-      const start = parseLocalDate(item.startDate);
-      const end = parseLocalDate(item.endDate);
-      const curr = new Date(start);
+      const [sY, sM, sD] = startStr.split("-").map(Number);
+      const [eY, eM, eD] = endStr.split("-").map(Number);
+      const curr = new Date(sY, sM - 1, sD);
+      const end = new Date(eY, eM - 1, eD);
       while (curr <= end) {
         dates.push(formatDateToLocal(curr));
         curr.setDate(curr.getDate() + 1);
@@ -320,26 +406,35 @@ export function ReportAbsenceSheet({
       return null;
     }
 
-    const normalizedTargetName = effectiveUserName.trim().toLowerCase();
-    const relevantAbsences = calendarAbsences.filter((a) => {
-      if (isEditing && editAbsence && a.id === editAbsence.id) return false;
-      if (effectiveUserId && a.userId && a.userId === effectiveUserId) return true;
-      if (normalizedTargetName && a.userName && a.userName.trim().toLowerCase() === normalizedTargetName) return true;
-      return false;
-    });
-
     for (const date of dates) {
       for (const absence of relevantAbsences) {
         if (isDateInAbsence(date, absence)) {
-          return {
-            type: "already_absent" as const,
-            date,
-            absence,
-            message: `${t("absence.conflictAlreadyAbsent", {
-              date: formatDateToDDMMYYYY(date),
-              default: `Employee is already reported as absent on this day (${formatDateToDDMMYYYY(date)})`,
-            })}${absence.isRecurring ? ` (${t("absence.recurring", { default: "Recurring" })})` : ""}`,
-          };
+          const overlap = doTimesOverlap(
+            item.isAllDay,
+            item.startTime,
+            item.endTime,
+            absence.isAllDay,
+            absence.startTime,
+            absence.endTime
+          );
+          if (overlap) {
+            const recNote = absence.isRecurring
+              ? ` [${t("absence.recurring", { default: "Recurring" })}]`
+              : "";
+            const timeNote =
+              !item.isAllDay && !absence.isAllDay
+                ? ` (${item.startTime}-${item.endTime} vs ${absence.startTime}-${absence.endTime})`
+                : "";
+            return {
+              type: "already_absent" as const,
+              date,
+              absence,
+              message: `${t("absence.conflictAlreadyAbsent", {
+                date: formatDateToDDMMYYYY(date),
+                default: `Employee is already reported as absent on ${formatDateToDDMMYYYY(date)}`,
+              })}${recNote}${timeNote}`,
+            };
+          }
         }
       }
     }
@@ -1012,14 +1107,14 @@ export function ReportAbsenceSheet({
               <div
                 className={`space-y-4 p-4 rounded-xl border transition-all ${
                   entryConflict
-                    ? "border-destructive/70 bg-destructive/5 ring-1 ring-destructive/40 shadow-sm shadow-destructive/10"
+                    ? "border-2 border-destructive bg-destructive/5 ring-2 ring-destructive/30 shadow-md shadow-destructive/10"
                     : "border-border/60 bg-muted/10"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div
                     className={`text-xs font-semibold flex items-center gap-2 ${
-                      entryConflict ? "text-destructive" : "text-foreground"
+                      entryConflict ? "text-destructive font-bold" : "text-foreground"
                     }`}
                   >
                     <Plus
@@ -1030,7 +1125,7 @@ export function ReportAbsenceSheet({
                     {t("absence.addNewPeriod", { default: "Add a Date / Period to List" })}
                   </div>
                   {entryConflict && (
-                    <span className="text-[11px] font-medium text-destructive flex items-center gap-1">
+                    <span className="text-[11px] font-bold text-destructive flex items-center gap-1 bg-destructive/15 px-2 py-0.5 rounded-full border border-destructive/30">
                       <AlertCircle className="w-3.5 h-3.5" />
                       {t("common.conflict", { default: "Conflict detected" })}
                     </span>
@@ -1043,7 +1138,7 @@ export function ReportAbsenceSheet({
                     <Label
                       htmlFor="nonrec-from-date"
                       className={`text-xs font-medium ${
-                        entryConflict ? "text-destructive" : ""
+                        entryConflict ? "text-destructive font-semibold" : ""
                       }`}
                     >
                       {t("absence.fromDate", { default: "From Date" })}
@@ -1055,7 +1150,7 @@ export function ReportAbsenceSheet({
                       onChange={(e) => handleFromDateChange(e.target.value)}
                       className={`h-10 transition-colors ${
                         entryConflict
-                          ? "border-destructive focus-visible:ring-destructive bg-destructive/10 text-destructive font-medium"
+                          ? "border-2 border-destructive focus-visible:ring-destructive bg-destructive/10 text-destructive font-semibold ring-1 ring-destructive/40"
                           : "border-border/50 bg-background"
                       }`}
                     />
@@ -1064,7 +1159,7 @@ export function ReportAbsenceSheet({
                     <Label
                       htmlFor="nonrec-to-date"
                       className={`text-xs font-medium ${
-                        entryConflict ? "text-destructive" : ""
+                        entryConflict ? "text-destructive font-semibold" : ""
                       }`}
                     >
                       {t("absence.toDate", { default: "To Date" })}
@@ -1079,7 +1174,7 @@ export function ReportAbsenceSheet({
                       }}
                       className={`h-10 transition-colors ${
                         entryConflict
-                          ? "border-destructive focus-visible:ring-destructive bg-destructive/10 text-destructive font-medium"
+                          ? "border-2 border-destructive focus-visible:ring-destructive bg-destructive/10 text-destructive font-semibold ring-1 ring-destructive/40"
                           : "border-border/50 bg-background"
                       }`}
                     />
@@ -1091,10 +1186,10 @@ export function ReportAbsenceSheet({
                   <motion.div
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-start gap-2 p-2.5 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive"
+                    className="flex items-start gap-2.5 p-3 rounded-lg bg-destructive/15 border-2 border-destructive/40 text-xs text-destructive font-medium shadow-sm"
                   >
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-destructive" />
-                    <span className="font-medium leading-relaxed">
+                    <span className="leading-relaxed">
                       {entryConflict.message}
                     </span>
                   </motion.div>
@@ -1120,7 +1215,13 @@ export function ReportAbsenceSheet({
                     <div className="space-y-1">
                       <Label
                         htmlFor="nonrec-start-time"
-                        className={`text-xs ${nonRecAllDay ? "text-muted-foreground" : ""}`}
+                        className={`text-xs ${
+                          nonRecAllDay
+                            ? "text-muted-foreground"
+                            : entryConflict
+                            ? "text-destructive font-semibold"
+                            : ""
+                        }`}
                       >
                         {t("shift.startTime")}
                       </Label>
@@ -1130,17 +1231,25 @@ export function ReportAbsenceSheet({
                         value={nonRecStartTime}
                         onChange={(e) => setNonRecStartTime(e.target.value)}
                         disabled={nonRecAllDay}
-                        className={`h-9 text-xs border-border/50 ${
+                        className={`h-9 text-xs ${
                           nonRecAllDay
-                            ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                            : "bg-background"
+                            ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60 border-border/50"
+                            : entryConflict
+                            ? "border-2 border-destructive bg-destructive/10 text-destructive font-medium"
+                            : "bg-background border-border/50"
                         }`}
                       />
                     </div>
                     <div className="space-y-1">
                       <Label
                         htmlFor="nonrec-end-time"
-                        className={`text-xs ${nonRecAllDay ? "text-muted-foreground" : ""}`}
+                        className={`text-xs ${
+                          nonRecAllDay
+                            ? "text-muted-foreground"
+                            : entryConflict
+                            ? "text-destructive font-semibold"
+                            : ""
+                        }`}
                       >
                         {t("shift.endTime")}
                       </Label>
@@ -1150,10 +1259,12 @@ export function ReportAbsenceSheet({
                         value={nonRecEndTime}
                         onChange={(e) => setNonRecEndTime(e.target.value)}
                         disabled={nonRecAllDay}
-                        className={`h-9 text-xs border-border/50 ${
+                        className={`h-9 text-xs ${
                           nonRecAllDay
-                            ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                            : "bg-background"
+                            ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60 border-border/50"
+                            : entryConflict
+                            ? "border-2 border-destructive bg-destructive/10 text-destructive font-medium"
+                            : "bg-background border-border/50"
                         }`}
                       />
                     </div>

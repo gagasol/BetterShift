@@ -88,7 +88,7 @@ export function AppHeader({
   return (
     <>
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm">
-        <div className="container max-w-4xl mx-auto p-3 sm:p-4">
+        <div className="container max-w-7xl mx-auto p-3 sm:p-4">
           <div className="space-y-3 sm:space-y-4">
             {/* Desktop: Logo + Calendar Selector in one line */}
             <div className="hidden sm:flex items-center justify-between gap-4">

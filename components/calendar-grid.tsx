@@ -322,254 +322,258 @@ export function CalendarGrid({
   };
 
   return (
-    <div className="grid grid-cols-7 gap-0 sm:gap-1.5 mb-6">
-      {[
-        t("common.weekday.monday"),
-        t("common.weekday.tuesday"),
-        t("common.weekday.wednesday"),
-        t("common.weekday.thursday"),
-        t("common.weekday.friday"),
-        t("common.weekday.saturday"),
-        t("common.weekday.sunday"),
-      ].map((day) => (
-        <div
-          key={day}
-          className="text-center text-[11px] sm:text-xs font-semibold text-muted-foreground p-1 sm:p-2"
-        >
-          {day}
-        </div>
-      ))}
-      {calendarDays.map((day, idx) => {
-        const dayShifts = getShiftsForDate(day);
-
-        // Find all notes/events for this day (including recurring)
-        const allDayNotes = findNotesForDate(notes, day);
-
-        // Count events and regular notes separately
-        const dayEvents = allDayNotes.filter((n) => n.type === "event");
-        const dayRegularNotes = allDayNotes.filter((n) => n.type !== "event");
-        const totalNotesCount = allDayNotes.length;
-
-        // Get first event and note for display
-        const dayEvent = dayEvents[0];
-        const dayNote = dayRegularNotes[0];
-
-        const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-        const isTodayDate = isToday(day);
-
-        const dayKey = formatDateToLocal(day);
-        const isToggling = togglingDates.has(dayKey);
-
-        const handleTouchStart = () => {
-          if (onLongPress) {
-            pressTimerRef.current[dayKey] = setTimeout(
-              () => onLongPress(day),
-              500
-            );
-          }
-        };
-        const handleTouchEnd = () => {
-          if (pressTimerRef.current[dayKey]) {
-            clearTimeout(pressTimerRef.current[dayKey]);
-            delete pressTimerRef.current[dayKey];
-          }
-        };
-
-        const isHighlighted =
-          highlightedWeekdays.length > 0 &&
-          highlightedWeekdays.includes(day.getDay());
-
-        const hasMultiEventBorder = dayEvents.length > 1 && !isTodayDate;
-        const eventBorderStyle =
-          dayEvents.length === 1 && !isTodayDate
-            ? {
-                borderColor: dayEvents[0].color || "#3b82f6",
-                borderWidth: "2px",
-              }
-            : {};
-
-        const defaultLocationId = locations.length > 0 ? locations[0].id : undefined;
-
-        return (
-          <motion.div
-            key={idx}
-            onClick={() => {
-              if (!hasMultipleLocations) {
-                onDayClick(day, defaultLocationId);
-              }
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              if (onDayRightClick) {
-                onDayRightClick(e, day);
-              }
-            }}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            onTouchMove={handleTouchEnd}
-            style={{
-              WebkitUserSelect: "none",
-              userSelect: "none",
-              WebkitTouchCallout: "none",
-              ...(isHighlighted &&
-                !isTodayDate && {
-                  backgroundColor: `${highlightColor}15`,
-                  borderColor: `${highlightColor}40`,
-                }),
-              ...eventBorderStyle,
-              ...(hasMultiEventBorder && {
-                backgroundImage: `linear-gradient(var(--background), var(--background)), linear-gradient(to right, ${dayEvents
-                  .map((e) => e.color || "#3b82f6")
-                  .join(", ")})`,
-                backgroundOrigin: "border-box",
-                backgroundClip: "padding-box, border-box",
-                border: "2px solid transparent",
-              }),
-            }}
-            className={`
-              min-h-25 sm:min-h-28 px-1 py-1.5 sm:p-2 rounded-md sm:rounded-lg text-sm transition-all relative flex flex-col border sm:border-2
-              ${isCurrentMonth ? "text-foreground" : "text-muted-foreground/50"}
-              ${
-                isTodayDate
-                  ? "border-primary shadow-lg shadow-primary/20 bg-primary/5 ring-2 ring-primary/20"
-                  : dayEvent
-                    ? ""
-                    : "border-border/30 sm:border-border/50"
-              }
-              ${
-                isCurrentMonth
-                  ? hasMultipleLocations
-                    ? "hover:border-border"
-                    : "hover:bg-accent cursor-pointer active:bg-accent/80 hover:border-border"
-                  : selectedPresetId
-                    ? "cursor-not-allowed"
-                    : "cursor-pointer"
-              }
-              ${!isCurrentMonth ? "opacity-40" : ""}
-              ${isToggling ? "opacity-50 cursor-wait pointer-events-none" : ""}
-            `}
-          >
-            {/* Header: Date number & note/event labels */}
+    <div className="w-full overflow-x-auto pb-2 scrollbar-thin">
+      <div className="min-w-[650px] sm:min-w-full">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-6">
+          {[
+            t("common.weekday.monday"),
+            t("common.weekday.tuesday"),
+            t("common.weekday.wednesday"),
+            t("common.weekday.thursday"),
+            t("common.weekday.friday"),
+            t("common.weekday.saturday"),
+            t("common.weekday.sunday"),
+          ].map((day) => (
             <div
-              className={`text-sm sm:text-sm font-semibold mb-1 flex items-center justify-between gap-1 shrink-0 ${
-                isTodayDate ? "text-primary" : ""
-              }`}
+              key={day}
+              className="text-center text-[11px] sm:text-xs font-semibold text-muted-foreground p-1 sm:p-2"
             >
-              <span className="shrink-0">{day.getDate()}</span>
-              <div className="flex items-center gap-1 min-w-0">
-                {totalNotesCount > 1 && (
-                  <span
-                    className={`inline-flex items-center justify-center text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 ${
-                      !selectedPresetId && onNoteIconClick
-                        ? "cursor-pointer hover:bg-primary/30 transition-colors"
-                        : ""
-                    }`}
-                    title={t("note.multipleEntries", { count: totalNotesCount })}
-                    onClick={(e) => {
-                      if (!selectedPresetId && onNoteIconClick) {
-                        e.stopPropagation();
-                        onNoteIconClick(e, day);
-                      }
-                    }}
-                  >
-                    {totalNotesCount}
-                  </span>
-                )}
-                {dayEvent && totalNotesCount === 1 && (
-                  <span
-                    className={`text-[10px] sm:text-xs font-medium truncate opacity-75 min-w-0 ${
-                      !selectedPresetId && onNoteIconClick
-                        ? "cursor-pointer hover:opacity-100 transition-opacity"
-                        : ""
-                    }`}
-                    style={{ color: dayEvent.color || "#3b82f6" }}
-                    title={dayEvent.note}
-                    onClick={(e) => {
-                      if (!selectedPresetId && onNoteIconClick) {
-                        e.stopPropagation();
-                        onNoteIconClick(e, day);
-                      }
-                    }}
-                  >
-                    {dayEvent.note}
-                  </span>
-                )}
-                {!dayEvent && dayNote && totalNotesCount === 1 && (
-                  <span
-                    className={`text-[10px] sm:text-xs font-medium text-orange-500 truncate opacity-75 min-w-0 ${
-                      !selectedPresetId && onNoteIconClick
-                        ? "cursor-pointer hover:opacity-100 transition-opacity"
-                        : ""
-                    }`}
-                    title={dayNote.note}
-                    onClick={(e) => {
-                      if (!selectedPresetId && onNoteIconClick) {
-                        e.stopPropagation();
-                        onNoteIconClick(e, day);
-                      }
-                    }}
-                  >
-                    {dayNote.note}
-                  </span>
-                )}
-              </div>
+              {day}
             </div>
+          ))}
+          {calendarDays.map((day, idx) => {
+            const dayShifts = getShiftsForDate(day);
 
-            {/* Grid Field Content: Vertical splitting for each location */}
-            {hasMultipleLocations ? (
-              <div
-                className="flex-1 grid divide-x divide-border/40 -mx-1 sm:-mx-1.5 -mb-1"
-                style={{
-                  gridTemplateColumns: `repeat(${locations.length}, minmax(0, 1fr))`,
+            // Find all notes/events for this day (including recurring)
+            const allDayNotes = findNotesForDate(notes, day);
+
+            // Count events and regular notes separately
+            const dayEvents = allDayNotes.filter((n) => n.type === "event");
+            const dayRegularNotes = allDayNotes.filter((n) => n.type !== "event");
+            const totalNotesCount = allDayNotes.length;
+
+            // Get first event and note for display
+            const dayEvent = dayEvents[0];
+            const dayNote = dayRegularNotes[0];
+
+            const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+            const isTodayDate = isToday(day);
+
+            const dayKey = formatDateToLocal(day);
+            const isToggling = togglingDates.has(dayKey);
+
+            const handleTouchStart = () => {
+              if (onLongPress) {
+                pressTimerRef.current[dayKey] = setTimeout(
+                  () => onLongPress(day),
+                  500
+                );
+              }
+            };
+            const handleTouchEnd = () => {
+              if (pressTimerRef.current[dayKey]) {
+                clearTimeout(pressTimerRef.current[dayKey]);
+                delete pressTimerRef.current[dayKey];
+              }
+            };
+
+            const isHighlighted =
+              highlightedWeekdays.length > 0 &&
+              highlightedWeekdays.includes(day.getDay());
+
+            const hasMultiEventBorder = dayEvents.length > 1 && !isTodayDate;
+            const eventBorderStyle =
+              dayEvents.length === 1 && !isTodayDate
+                ? {
+                    borderColor: dayEvents[0].color || "#3b82f6",
+                    borderWidth: "2px",
+                  }
+                : {};
+
+            const defaultLocationId = locations.length > 0 ? locations[0].id : undefined;
+
+            return (
+              <motion.div
+                key={idx}
+                onClick={() => {
+                  if (!hasMultipleLocations) {
+                    onDayClick(day, defaultLocationId);
+                  }
                 }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  if (onDayRightClick) {
+                    onDayRightClick(e, day);
+                  }
+                }}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onTouchMove={handleTouchEnd}
+                style={{
+                  WebkitUserSelect: "none",
+                  userSelect: "none",
+                  WebkitTouchCallout: "none",
+                  ...(isHighlighted &&
+                    !isTodayDate && {
+                      backgroundColor: `${highlightColor}15`,
+                      borderColor: `${highlightColor}40`,
+                    }),
+                  ...eventBorderStyle,
+                  ...(hasMultiEventBorder && {
+                    backgroundImage: `linear-gradient(var(--background), var(--background)), linear-gradient(to right, ${dayEvents
+                      .map((e) => e.color || "#3b82f6")
+                      .join(", ")})`,
+                    backgroundOrigin: "border-box",
+                    backgroundClip: "padding-box, border-box",
+                    border: "2px solid transparent",
+                  }),
+                }}
+                className={`
+                  min-h-[140px] sm:min-h-[160px] md:min-h-[168px] px-1.5 py-2 sm:p-2.5 rounded-md sm:rounded-lg text-sm transition-all relative flex flex-col border sm:border-2
+                  ${isCurrentMonth ? "text-foreground" : "text-muted-foreground/50"}
+                  ${
+                    isTodayDate
+                      ? "border-primary shadow-lg shadow-primary/20 bg-primary/5 ring-2 ring-primary/20"
+                      : dayEvent
+                        ? ""
+                        : "border-border/30 sm:border-border/50"
+                  }
+                  ${
+                    isCurrentMonth
+                      ? hasMultipleLocations
+                        ? "hover:border-border"
+                        : "hover:bg-accent cursor-pointer active:bg-accent/80 hover:border-border"
+                      : selectedPresetId
+                        ? "cursor-not-allowed"
+                        : "cursor-pointer"
+                  }
+                  ${!isCurrentMonth ? "opacity-40" : ""}
+                  ${isToggling ? "opacity-50 cursor-wait pointer-events-none" : ""}
+                `}
               >
-                {locations.map((loc, locIndex) => {
-                  // Filter shifts for this specific location
-                  const locShifts = dayShifts.filter((s) => {
-                    if (s.locationId) {
-                      return s.locationId === loc.id;
-                    }
-                    // If shift has no locationId, assign to first location
-                    return locIndex === 0;
-                  });
-
-                  return (
-                    <div
-                      key={loc.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDayClick(day, loc.id);
-                      }}
-                      className="px-1 sm:px-1.5 py-0.5 flex flex-col min-h-full cursor-pointer hover:bg-primary/5 transition-colors rounded-sm group/loc"
-                    >
-                      {/* Name of location on top of each split grid field as a label */}
-                      <div
-                        className="text-[9px] sm:text-[10px] font-semibold px-1 py-0.5 mb-1 rounded bg-muted/60 text-foreground/80 group-hover/loc:bg-primary/15 group-hover/loc:text-primary transition-colors flex items-center justify-center gap-1 border-b border-border/30"
-                        title={loc.name}
+                {/* Header: Date number & note/event labels */}
+                <div
+                  className={`text-sm sm:text-sm font-semibold mb-1 flex items-center justify-between gap-1 shrink-0 ${
+                    isTodayDate ? "text-primary" : ""
+                  }`}
+                >
+                  <span className="shrink-0">{day.getDate()}</span>
+                  <div className="flex items-center gap-1 min-w-0">
+                    {totalNotesCount > 1 && (
+                      <span
+                        className={`inline-flex items-center justify-center text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 ${
+                          !selectedPresetId && onNoteIconClick
+                            ? "cursor-pointer hover:bg-primary/30 transition-colors"
+                            : ""
+                        }`}
+                        title={t("note.multipleEntries", { count: totalNotesCount })}
+                        onClick={(e) => {
+                          if (!selectedPresetId && onNoteIconClick) {
+                            e.stopPropagation();
+                            onNoteIconClick(e, day);
+                          }
+                        }}
                       >
-                        <span
-                          className="w-1.5 h-1.5 rounded-full shrink-0"
-                          style={{ backgroundColor: loc.color || "#3b82f6" }}
-                        />
-                        <span className="truncate">{loc.name}</span>
-                      </div>
+                        {totalNotesCount}
+                      </span>
+                    )}
+                    {dayEvent && totalNotesCount === 1 && (
+                      <span
+                        className={`text-[10px] sm:text-xs font-medium truncate opacity-75 min-w-0 ${
+                          !selectedPresetId && onNoteIconClick
+                            ? "cursor-pointer hover:opacity-100 transition-opacity"
+                            : ""
+                        }`}
+                        style={{ color: dayEvent.color || "#3b82f6" }}
+                        title={dayEvent.note}
+                        onClick={(e) => {
+                          if (!selectedPresetId && onNoteIconClick) {
+                            e.stopPropagation();
+                            onNoteIconClick(e, day);
+                          }
+                        }}
+                      >
+                        {dayEvent.note}
+                      </span>
+                    )}
+                    {!dayEvent && dayNote && totalNotesCount === 1 && (
+                      <span
+                        className={`text-[10px] sm:text-xs font-medium text-orange-500 truncate opacity-75 min-w-0 ${
+                          !selectedPresetId && onNoteIconClick
+                            ? "cursor-pointer hover:opacity-100 transition-opacity"
+                            : ""
+                        }`}
+                        title={dayNote.note}
+                        onClick={(e) => {
+                          if (!selectedPresetId && onNoteIconClick) {
+                            e.stopPropagation();
+                            onNoteIconClick(e, day);
+                          }
+                        }}
+                      >
+                        {dayNote.note}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-                      {/* Shifts for this location */}
-                      <div className="flex-1">
-                        {renderShiftsGroup(locShifts, day)}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex-1 overflow-visible">
-                {renderShiftsGroup(dayShifts, day)}
-              </div>
-            )}
-          </motion.div>
-        );
-      })}
+                {/* Grid Field Content: Vertical splitting for each location */}
+                {hasMultipleLocations ? (
+                  <div
+                    className="flex-1 grid divide-x divide-border/40 -mx-1 sm:-mx-1.5 -mb-1"
+                    style={{
+                      gridTemplateColumns: `repeat(${locations.length}, minmax(0, 1fr))`,
+                    }}
+                  >
+                    {locations.map((loc, locIndex) => {
+                      // Filter shifts for this specific location
+                      const locShifts = dayShifts.filter((s) => {
+                        if (s.locationId) {
+                          return s.locationId === loc.id;
+                        }
+                        // If shift has no locationId, assign to first location
+                        return locIndex === 0;
+                      });
+
+                      return (
+                        <div
+                          key={loc.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDayClick(day, loc.id);
+                          }}
+                          className="px-1 sm:px-1.5 py-0.5 flex flex-col min-h-full cursor-pointer hover:bg-primary/5 transition-colors rounded-sm group/loc"
+                        >
+                          {/* Name of location on top of each split grid field as a label */}
+                          <div
+                            className="text-[9px] sm:text-[10px] font-semibold px-1 py-0.5 mb-1 rounded bg-muted/60 text-foreground/80 group-hover/loc:bg-primary/15 group-hover/loc:text-primary transition-colors flex items-center justify-center gap-1 border-b border-border/30"
+                            title={loc.name}
+                          >
+                            <span
+                              className="w-1.5 h-1.5 rounded-full shrink-0"
+                              style={{ backgroundColor: loc.color || "#3b82f6" }}
+                            />
+                            <span className="truncate">{loc.name}</span>
+                          </div>
+
+                          {/* Shifts for this location */}
+                          <div className="flex-1">
+                            {renderShiftsGroup(locShifts, day)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-visible">
+                    {renderShiftsGroup(dayShifts, day)}
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

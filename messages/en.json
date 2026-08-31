@@ -63,6 +63,7 @@
     "deleteSelected": "Delete Selected",
     "viewAll": "View All",
     "viewDetails": "View Details",
+    "conflict": "Conflict",
     "employee": "Employee",
     "select_employee": "Select employee...",
     "weekday": {
