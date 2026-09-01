@@ -66,6 +66,7 @@
     "conflict": "Konflikt",
     "employee": "Mitarbeitende/r",
     "select_employee": "Auswählen...",
+    "allEmployees": "Alle Mitarbeitenden",
     "weekday": {
       "monday": "Mo",
       "tuesday": "Di",
@@ -159,8 +160,8 @@
     "urlPlaceholder": "https://..."
   },
   "app": {
-    "title": "BetterShift",
-    "subtitle": "Organisiere deine Schichten"
+    "title": "Casa Due Schichtplaner",
+    "subtitle": ""
   },
   "calendar": {
     "title": "Kalender",
@@ -202,7 +203,8 @@
     "publicBadge": "Öffentlich",
     "showAgain": "Wieder anzeigen",
     "noSharedCalendars": "Noch keine mit dir geteilten Kalender",
-    "noHiddenCalendars": "Keine ausgeblendeten Kalender"
+    "noHiddenCalendars": "Keine ausgeblendeten Kalender",
+    "today": "Derzeitigen Monat anzeigen"
   },
   "color": {
     "custom": "Eigene Farbe",
@@ -245,7 +247,7 @@
     "endTime": "Endzeit",
     "titlePlaceholder": "z.B. Frühschicht",
     "titleLabel": "Titel",
-    "allDay": "GT",
+    "allDay": "Ganztägig",
     "allDayShift": "Ganztägige Schicht",
     "noShiftsInMonth": "Keine Schichten in diesem Monat",
     "noShiftsInMonthDescription": "Füge Schichten hinzu, indem du auf Tage im Kalender oben klickst.",

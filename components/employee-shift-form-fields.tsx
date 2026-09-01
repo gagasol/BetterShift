@@ -122,7 +122,7 @@ export function EmployeeShiftFormFields({
 
         <select
           id="employee"
-          value={formData.title}
+          value={formData.userId || formData.title}
           disabled={readOnly || membersLoading}
           className={`flex h-11 w-full rounded-md border bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus:ring-primary/20 ${
             selectedIsAbsent
@@ -130,9 +130,22 @@ export function EmployeeShiftFormFields({
               : "border-border/50 focus:border-primary/50"
           }`}
           onChange={(e) => {
-            const selectedVal = e.target.value;
-            if (selectedVal !== "") {
-              onFormDataChange({ ...formData, title: selectedVal });
+            const selectedId = e.target.value;
+
+            if (selectedId === "") {
+              onFormDataChange({ ...formData, title: "", userId: null });
+            } else {
+              const selectedMember = members.find(m => m.id === selectedId);
+
+              if (selectedMember) {
+                onFormDataChange({
+                  ...formData,
+                  title: selectedMember.name || "Unknown",
+                  userId: selectedMember.id
+                });
+              } else {
+              onFormDataChange({ ...formData, title: selectedId, userId: null });
+              }
             }
           }}
           onBlur={onBlur}

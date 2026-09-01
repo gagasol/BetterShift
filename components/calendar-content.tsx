@@ -11,6 +11,7 @@ import { CalendarNote, ExternalSync } from "@/lib/db/schema";
 import { Locale } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useCalendarLocations } from "@/hooks/useCalendarLocations";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
 
 interface CalendarContentProps {
   calendarDays: Date[];
@@ -44,7 +45,7 @@ interface CalendarContentProps {
 
 export function CalendarContent(props: CalendarContentProps) {
   const t = useTranslations();
-  const { isGuest } = useAuth();
+  const { user, isGuest } = useAuth();
   const { locations } = useCalendarLocations(props.selectedCalendar);
 
   return (
@@ -124,18 +125,22 @@ export function CalendarContent(props: CalendarContentProps) {
       </motion.div>
 
       <div className="space-y-3 sm:space-y-4 px-2 sm:px-0">
-        <ShiftStats
-          calendarId={props.selectedCalendar || undefined}
-          currentDate={props.currentDate}
-        />
+        {user?.role === "admin" || user?.role === "superadmin" && (
+          <ShiftStats
+            calendarId={props.selectedCalendar || undefined}
+            currentDate={props.currentDate}
+          />
+        )}
 
-        <ShiftsList
-          shifts={props.shifts}
-          currentDate={props.currentDate}
-          onDeleteShift={props.onDeleteShift}
-          onEditShift={props.onEditShift}
-          calendarId={props.selectedCalendar || undefined}
-        />
+        {!FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE && (
+          <ShiftsList
+            shifts={props.shifts}
+            currentDate={props.currentDate}
+            onDeleteShift={props.onDeleteShift}
+            onEditShift={props.onEditShift}
+            calendarId={props.selectedCalendar || undefined}
+          />
+        )}
       </div>
     </>
   );

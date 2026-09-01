@@ -49,6 +49,7 @@ export interface ShiftWithCalendar {
     name: string;
     color?: string | null;
   } | null;
+  userId?: string | null;
   presetId?: string | null;
   calendar?: {
     id: string;

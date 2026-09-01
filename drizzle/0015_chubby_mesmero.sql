@@ -1,4 +1,6 @@
-CREATE TABLE IF NOT EXISTS `absences` (
+DROP TABLE IF EXISTS `absences`;
+--> statement-breakpoint
+CREATE TABLE `absences` (
 	`id` text PRIMARY KEY NOT NULL,
 	`calendar_id` text NOT NULL,
 	`user_id` text,
@@ -19,7 +21,8 @@ CREATE TABLE IF NOT EXISTS `absences` (
 	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX IF NOT EXISTS `absences_calendarId_idx` ON `absences` (`calendar_id`);--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS `absences_userId_idx` ON `absences` (`user_id`);--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS `absences_startDate_idx` ON `absences` (`start_date`);--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS `absences_endDate_idx` ON `absences` (`end_date`);
+CREATE INDEX `absences_calendarId_idx` ON `absences` (`calendar_id`);--> statement-breakpoint
+CREATE INDEX `absences_userId_idx` ON `absences` (`user_id`);--> statement-breakpoint
+CREATE INDEX `absences_startDate_idx` ON `absences` (`start_date`);--> statement-breakpoint
+CREATE INDEX `absences_endDate_idx` ON `absences` (`end_date`);--> statement-breakpoint
+ALTER TABLE `shifts` ADD `user_id` text REFERENCES user(id);

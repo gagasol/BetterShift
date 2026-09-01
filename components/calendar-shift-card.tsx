@@ -26,6 +26,18 @@ export function CalendarShiftCard({
     }
   };
 
+  
+  const formatEmployeeName = (fullName: string) => {
+    if (!fullName) return "";
+    const nameParts = fullName.trim().split(" ");
+    if (nameParts.length <= 1) return fullName;
+
+    const firstName = nameParts[0];
+    const lastName = nameParts[nameParts.length -1];
+
+    return `${firstName} ${lastName.charAt(0)}.`;
+  }
+
   return (
     <div
       className={`text-[10px] sm:text-xs px-0.5 py-0.5 sm:px-1.5 sm:py-1 rounded transition-all duration-100 ${
@@ -49,7 +61,7 @@ export function CalendarShiftCard({
           showFullTitles ? "" : "line-clamp-2"
         }`}
       >
-        {shift.title}
+        {formatEmployeeName(shift.title)}
       </div>
       <div className="text-[9px] sm:text-[10px] opacity-70 leading-tight">
         {shift.isAllDay ? (
@@ -72,3 +84,4 @@ export function CalendarShiftCard({
     </div>
   );
 }
+

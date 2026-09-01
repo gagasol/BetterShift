@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f98deb95-218a-4d1b-9d27-c1e078591281",
-  "prevId": "15a997db-247d-452f-8243-0146dfca9d63",
+  "id": "1a421861-6ccb-46fc-bfb9-7bcb7fb10797",
+  "prevId": "eb3a6d18-5c76-4869-a0af-f7f8a380da72",
   "tables": {
     "absences": {
       "name": "absences",
@@ -1355,6 +1355,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "preset_id": {
           "name": "preset_id",
           "type": "text",
@@ -1481,6 +1488,19 @@
           "tableTo": "calendar_locations",
           "columnsFrom": [
             "location_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "shifts_user_id_user_id_fk": {
+          "name": "shifts_user_id_user_id_fk",
+          "tableFrom": "shifts",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
           ],
           "columnsTo": [
             "id"

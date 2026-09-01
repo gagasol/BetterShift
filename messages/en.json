@@ -66,6 +66,7 @@
     "conflict": "Conflict",
     "employee": "Employee",
     "select_employee": "Select employee...",
+    "allEmployees": "All Employees",
     "weekday": {
       "monday": "Mon",
       "tuesday": "Tue",
@@ -251,6 +252,8 @@
     "noShiftsInMonthDescription": "Add shifts by clicking on days in the calendar above.",
     "shift_one": "shift",
     "selectPreset": "Select Preset",
+    "viewAllShifts": "View All Shifts",
+    "allShiftsDesciption": "Overview of all shifts",
     "none": "None"
   },
   "preset": {

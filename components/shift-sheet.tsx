@@ -36,6 +36,7 @@ export interface ShiftFormData {
   presetId?: string;
   isAllDay?: boolean;
   locationId?: string;
+  userId?: string | null;
 }
 
 export function ShiftSheet({

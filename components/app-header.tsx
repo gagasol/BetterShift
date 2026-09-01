@@ -10,6 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAuthFeatures } from "@/hooks/useAuthFeatures";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
+import { ListTodo } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +54,7 @@ interface AppHeaderProps {
   presetsLoading?: boolean;
   hidePresetHeader?: boolean;
   onHidePresetHeaderChange?: (hide: boolean) => void;
+  onShowEmployeeShifts?: () => void;
 }
 
 export function AppHeader({
@@ -76,6 +79,7 @@ export function AppHeader({
   presetsLoading = false,
   hidePresetHeader = false,
   onHidePresetHeaderChange,
+  onShowEmployeeShifts,
 }: AppHeaderProps) {
   const t = useTranslations();
   const locale = useLocale();
@@ -145,6 +149,18 @@ export function AppHeader({
                     <span>
                       {t("absence.reportAbsenceButton", { default: "Report absence" })}
                     </span>
+                  </Button>
+                )}
+
+                {FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE && onShowEmployeeShifts && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onShowEmployeeShifts}
+                    className="h-9 px-2.5 sm:px-3 text-xs font-medium border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <ListTodo className="h-4 w-4" />
+                    <span className="hidden sm:inline">{t("common.shifts", { default: "Shifts" })}</span>
                   </Button>
                 )}
 
@@ -275,6 +291,21 @@ export function AppHeader({
                   </Button>
                 </motion.div>
               )}
+
+              {/* Show all shifts button mobile */}
+              {FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE && onShowEmployeeShifts && (
+                <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.22, type: "spring" }} className="shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onShowEmployeeShifts}
+                    className="h-10 w-10 rounded-full bg-muted/40 backdrop-blur-sm border border-border/50 text-primary shadow-sm hover:bg-accent transition-all"
+                  >
+                    <ListTodo className="h-5 w-5" />
+                  </Button>
+                </motion.div>
+              )}
+              
 
               {/* Calendar Selection Card with Connection Indicator */}
               <button

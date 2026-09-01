@@ -62,6 +62,7 @@ export function EmployeeShiftSheet({
     notes: "",
     isAllDay: false,
     locationId: defaultLocId,
+    userId: shift?.userId || null,
   });
 
   // Sync form data on open or shift change
@@ -85,6 +86,7 @@ export function EmployeeShiftSheet({
           color: shift.color || "#3b82f6",
           isAllDay: false,
           locationId: locId,
+          userId: shift.userId || null,
         };
         setFormData(initialData);
         initialFormDataRef.current = JSON.stringify(initialData);
@@ -98,6 +100,7 @@ export function EmployeeShiftSheet({
           notes: "",
           isAllDay: false,
           locationId: locId,
+          userId: null,
         };
         setFormData(initialData);
         initialFormDataRef.current = null;
@@ -118,6 +121,7 @@ export function EmployeeShiftSheet({
         color: formData.color,
         isAllDay: false,
         locationId: formData.locationId,
+        userId: formData.userId || null,
       };
       return JSON.stringify(currentData) !== initialFormDataRef.current;
     }

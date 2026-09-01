@@ -548,11 +548,13 @@ export function CalendarGrid({
                         >
                           {/* Name of location on top of each split grid field with bigger font size & day number on first column */}
                           <div
-                            className="text-xs sm:text-sm font-bold px-2 py-1.5 bg-muted/80 text-foreground group-hover/loc:bg-primary/15 group-hover/loc:text-primary transition-colors flex items-center justify-between gap-1.5 border-b-2 border-border"
+                            className="text-xs sm:text-sm font-bold px-2 py-1.5 bg-muted/80 text-foreground group-hover/loc:bg-primary/15 
+                                    group-hover/loc:text-primary transition-colors flex items-center justify-between gap-1.5 border-b-2 border-border"
                             title={loc.name}
                           >
                             <div className="flex items-center gap-1.5 min-w-0">
                               {/* Day number to the left of the location name if multiple locations */}
+                              { /*
                               {locIndex === 0 && (
                                 <span
                                   className={`text-xs sm:text-sm font-extrabold mr-0.5 shrink-0 ${
@@ -562,6 +564,7 @@ export function CalendarGrid({
                                   {day.getDate()}
                                 </span>
                               )}
+                              */ }
                               <span
                                 className="w-2.5 h-2.5 rounded-full shrink-0"
                                 style={{ backgroundColor: loc.color || "#3b82f6" }}
@@ -570,6 +573,7 @@ export function CalendarGrid({
                             </div>
 
                             {/* Note badge shown in the rightmost location header if exists */}
+                            { /*
                             {locIndex === locations.length - 1 && totalNotesCount > 0 && (
                               <div className="flex items-center gap-1 shrink-0">
                                 {totalNotesCount > 1 ? (
@@ -615,6 +619,7 @@ export function CalendarGrid({
                                 ) : null}
                               </div>
                             )}
+                            */ }
                           </div>
 
                           {/* Shifts for this location */}
@@ -630,6 +635,62 @@ export function CalendarGrid({
                     {renderShiftsGroup(dayShifts, day)}
                   </div>
                 )}
+
+                {/* Bottom wrapper for date and notes */}
+                <div className="mt-auto shrink-0 flex items-left gap-2 px-1 py-1.5 border-t border-border/20 bg-muted/5 w-full">
+                  <div
+                    className={`text-[14px] sm:text-s font-extrabold ${
+                      isTodayDate ? "text-primary font-black" : "text-muted-foreground/90"
+                    }`}
+                  >
+                    {day.getDate()}
+                  </div>
+
+                  <div className="flex items-right gap-1 min-w-0 pointer-events-auto">
+                    {totalNotesCount > 1 ? (
+                      <span
+                        className="inline-flex items-center justify-center text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/20 
+                                  text-primary border border-primary/30 cursor-pointer hover:bg-primary/30 transition-colors"
+                        title={t("note.multipleEntries", {count: totalNotesCount})}
+                        onClick={(e) => {
+                          if (!selectedPresetId && onNoteIconClick) {
+                            e.stopPropagation();
+                            onNoteIconClick(e, day);
+                          }
+                        }}
+                      >
+                      {totalNotesCount}
+                    </span>
+                  ) : dayEvent ? (
+                    <span
+                      className="text-[10x] sm:text-xs font-medium truncate max-w-[65px] cursor-pointer hover:opacity-100 transition-opacity"
+                      style={{color: dayEvent.color || "#3b82f6"}}
+                      title={dayEvent.note}
+                      onClick={(e) => {
+                        if (!selectedPresetId && onNoteIconClick) {
+                          e.stopPropagation();
+                          onNoteIconClick(e, day);
+                        }
+                      }}
+                    >
+                    {dayEvent.note}
+                    </span>
+                  ) : dayNote ? (
+                    <span
+                      className="text-[10x] sm:text-xs font-medium text-orange-500 truncate max-w-[65px] cursor-pointer hover:opacity-100 transition-opacity"
+                      title={dayNote.note}
+                      onClick={(e) => {
+                        if (!selectedPresetId && onNoteIconClick) {
+                          e.stopPropagation();
+                          onNoteIconClick(e, day);
+                        }
+                      }}
+                    >
+                    {dayNote.note}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
               </motion.div>
             );
           })}

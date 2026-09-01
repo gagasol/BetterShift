@@ -248,6 +248,7 @@ export const shifts = sqliteTable("shifts", {
   locationId: text("location_id").references(() => calendarLocations.id, {
     onDelete: "set null",
   }),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
   presetId: text("preset_id").references(() => shiftPresets.id, {
     onDelete: "set null",
   }),
@@ -632,4 +633,3 @@ export const absencesRelations = relations(absences, ({ one }) => ({
     references: [user.id],
   }),
 }));
-

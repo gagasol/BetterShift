@@ -41,6 +41,7 @@ import { findNotesForDate } from "@/lib/event-utils";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
+import { EmployeeShiftsDialog } from "@/components/employee-shifts-dialog"
 
 function HomeContent() {
   const router = useRouter();
@@ -100,6 +101,8 @@ function HomeContent() {
   const [compareTogglingDates, setCompareTogglingDates] = useState<
     Map<string, Set<string>>
   >(new Map());
+
+  const [showEmployeeShiftsDialog, setShowEmployeeShiftsDialog] = useState(false);
 
   // Query client for cache invalidation
   const queryClient = useQueryClient();
@@ -917,6 +920,7 @@ function HomeContent() {
         presetsLoading={presetsLoading}
         hidePresetHeader={viewSettings.hidePresetHeader}
         onHidePresetHeaderChange={viewSettings.handleHidePresetHeaderChange}
+        onShowEmployeeShifts={() => setShowEmployeeShiftsDialog(true)}
       />
 
       <div className="w-full px-1 py-3 sm:p-4 flex-1">
@@ -1056,6 +1060,15 @@ function HomeContent() {
         calendarId={selectedCalendar || ""}
         calendars={calendars}
       />
+
+      <EmployeeShiftsDialog
+        open={showEmployeeShiftsDialog}
+        onOpenChange={setShowEmployeeShiftsDialog}
+        shifts={shifts}
+        calendarId={selectedCalendar || undefined}
+        onEditShift={handleEditShiftFromDayDialog}
+        onDeleteShift={shiftActions.handleDeleteShift}
+        />
 
       <AppFooter versionInfo={versionInfo} />
     </div>
