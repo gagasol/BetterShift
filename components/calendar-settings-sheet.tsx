@@ -75,15 +75,16 @@ export function CalendarSettingsSheet({
 }: CalendarSettingsSheetProps) {
   const t = useTranslations();
   const { updateCalendar } = useCalendars();
-  const { locations } = useCalendarLocations(calendarId);
+  const { locations, updateLocation } = useCalendarLocations(calendarId);
   const { canShare, canManage, canDelete } = useCalendarPermission(calendarId);
   const { isAuthEnabled } = useAuthFeatures();
 
   const isEmployeeInterface = FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE;
   const currentCalendar = availableCalendars.find((c) => c.id === calendarId);
+  const singleLoc = locations.length === 1 ? locations[0] : undefined;
 
-  const initialStart = currentCalendar?.defaultStartTime || "09:00";
-  const initialEnd = currentCalendar?.defaultEndTime || "17:00";
+  const initialStart = singleLoc?.defaultStartTime || currentCalendar?.defaultStartTime || "09:00";
+  const initialEnd = singleLoc?.defaultEndTime || currentCalendar?.defaultEndTime || "17:00";
 
   // Use props directly as initial state, controlled by key prop on component
   const [name, setName] = useState(calendarName);
@@ -108,8 +109,9 @@ export function CalendarSettingsSheet({
   useEffect(() => {
     if (open) {
       const cur = availableCalendars.find((c) => c.id === calendarId);
-      const start = cur?.defaultStartTime || "09:00";
-      const end = cur?.defaultEndTime || "17:00";
+      const singleLocation = locations.length === 1 ? locations[0] : undefined;
+      const start = singleLocation?.defaultStartTime || cur?.defaultStartTime || "09:00";
+      const end = singleLocation?.defaultEndTime || cur?.defaultEndTime || "17:00";
 
       setName(calendarName);
       setSelectedColor(calendarColor);
@@ -126,7 +128,7 @@ export function CalendarSettingsSheet({
       initialFormStateRef.current = null;
       setShowFillPlanConfirm(false);
     }
-  }, [open, calendarId, calendarName, calendarColor, calendarGuestPermission, availableCalendars]);
+  }, [open, calendarId, calendarName, calendarColor, calendarGuestPermission, availableCalendars, locations]);
 
   const hasChanges = () => {
     if (!initialFormStateRef.current) return false;
@@ -165,6 +167,22 @@ export function CalendarSettingsSheet({
     };
 
     await updateCalendar(calendarId, updates);
+
+    // If single location, also update that location to ensure immediate sync
+    if (locations.length === 1 && isEmployeeInterface) {
+      try {
+        await updateLocation(
+          locations[0].id,
+          locations[0].name,
+          locations[0].color,
+          locations[0].order,
+          defaultStartTime,
+          defaultEndTime
+        );
+      } catch (e) {
+        console.error("Failed to sync single location default times", e);
+      }
+    }
 
     setLoading(false);
     onSuccess();

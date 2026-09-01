@@ -63,6 +63,8 @@ export async function GET(
         .values({
           calendarId: id,
           name: "Main Location",
+          defaultStartTime: calendar.defaultStartTime || "09:00",
+          defaultEndTime: calendar.defaultEndTime || "17:00",
           order: 0,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -171,6 +173,25 @@ export async function PATCH(
       .set(updateData)
       .where(eq(calendars.id, id))
       .returning();
+
+    // If default times changed, also update the single location if there's only 1 location
+    if (updateData.defaultStartTime || updateData.defaultEndTime) {
+      const locs = await db
+        .select()
+        .from(calendarLocations)
+        .where(eq(calendarLocations.calendarId, id));
+      if (locs.length === 1) {
+        const locUpdates: { defaultStartTime?: string; defaultEndTime?: string; updatedAt: Date } = {
+          updatedAt: new Date(),
+        };
+        if (updateData.defaultStartTime) locUpdates.defaultStartTime = updateData.defaultStartTime;
+        if (updateData.defaultEndTime) locUpdates.defaultEndTime = updateData.defaultEndTime;
+        await db
+          .update(calendarLocations)
+          .set(locUpdates)
+          .where(eq(calendarLocations.id, locs[0].id));
+      }
+    }
 
     // Log calendar update event if there were actual changes
     if (user && changes.length > 0) {

@@ -53,12 +53,17 @@ export function EmployeeShiftSheet({
     selectedLocationId ||
     (locations.length > 0 ? locations[0].id : undefined);
 
+  const initialLoc = locations.find((l) => l.id === defaultLocId) || locations[0];
+  const initialDefaultStart = initialLoc?.defaultStartTime || "09:00";
+  const initialDefaultEnd = initialLoc?.defaultEndTime || "17:00";
+  const initialDefaultColor = initialLoc?.color || "#3b82f6";
+
   const [formData, setFormData] = useState<ShiftFormData>({
     date: formatDateToLocal(selectedDate || new Date()),
-    startTime: "09:00",
-    endTime: "17:00",
+    startTime: initialDefaultStart,
+    endTime: initialDefaultEnd,
     title: "",
-    color: "#3b82f6",
+    color: initialDefaultColor,
     notes: "",
     isAllDay: false,
     locationId: defaultLocId,
@@ -73,17 +78,22 @@ export function EmployeeShiftSheet({
         selectedLocationId ||
         (locations.length > 0 ? locations[0].id : undefined);
 
+      const targetLoc = locations.find((l) => l.id === locId) || locations[0];
+      const defaultStart = targetLoc?.defaultStartTime || "09:00";
+      const defaultEnd = targetLoc?.defaultEndTime || "17:00";
+      const defaultColor = targetLoc?.color || "#3b82f6";
+
       if (shift) {
         const initialData: ShiftFormData = {
           date:
             shift.date && shift.date instanceof Date
               ? formatDateToLocal(shift.date)
               : formatDateToLocal(new Date()),
-          startTime: shift.startTime || "09:00",
-          endTime: shift.endTime || "17:00",
+          startTime: shift.startTime || defaultStart,
+          endTime: shift.endTime || defaultEnd,
           title: shift.title || "",
           notes: shift.notes || "",
-          color: shift.color || "#3b82f6",
+          color: shift.color || defaultColor,
           isAllDay: false,
           locationId: locId,
           userId: shift.userId || null,
@@ -93,10 +103,10 @@ export function EmployeeShiftSheet({
       } else {
         const initialData: ShiftFormData = {
           date: formatDateToLocal(selectedDate || new Date()),
-          startTime: "09:00",
-          endTime: "17:00",
+          startTime: defaultStart,
+          endTime: defaultEnd,
           title: "",
-          color: "#3b82f6",
+          color: defaultColor,
           notes: "",
           isAllDay: false,
           locationId: locId,

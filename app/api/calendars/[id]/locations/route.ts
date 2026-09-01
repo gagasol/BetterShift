@@ -32,12 +32,23 @@ export async function GET(
 
     // If no locations exist yet for this calendar, create a default location
     if (locations.length === 0) {
+      // Get the calendar's default times
+      const [cal] = await db
+        .select({
+          defaultStartTime: calendars.defaultStartTime,
+          defaultEndTime: calendars.defaultEndTime,
+        })
+        .from(calendars)
+        .where(eq(calendars.id, calendarId));
+
       const [newLocation] = await db
         .insert(calendarLocations)
         .values({
           calendarId,
           name: "Main Location",
           order: 0,
+          defaultStartTime: cal?.defaultStartTime || "09:00",
+          defaultEndTime: cal?.defaultEndTime || "17:00",
           createdAt: new Date(),
           updatedAt: new Date(),
         })
@@ -100,14 +111,29 @@ export async function POST(
       locationOrder = existing.length;
     }
 
+    // Get calendar defaults if not explicitly passed
+    let locStartTime = defaultStartTime;
+    let locEndTime = defaultEndTime;
+    if (!locStartTime || !locEndTime) {
+      const [cal] = await db
+        .select({
+          defaultStartTime: calendars.defaultStartTime,
+          defaultEndTime: calendars.defaultEndTime,
+        })
+        .from(calendars)
+        .where(eq(calendars.id, calendarId));
+      if (!locStartTime) locStartTime = cal?.defaultStartTime || "09:00";
+      if (!locEndTime) locEndTime = cal?.defaultEndTime || "17:00";
+    }
+
     const [newLocation] = await db
       .insert(calendarLocations)
       .values({
         calendarId,
         name: name.trim(),
         color: color || null,
-        defaultStartTime: defaultStartTime || "09:00",
-        defaultEndTime: defaultEndTime || "17:00",
+        defaultStartTime: locStartTime,
+        defaultEndTime: locEndTime,
         order: locationOrder,
         createdAt: new Date(),
         updatedAt: new Date(),

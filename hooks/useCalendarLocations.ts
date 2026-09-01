@@ -111,7 +111,12 @@ export function useCalendarLocations(calendarId: string | null) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; color?: string }) => {
+    mutationFn: (data: {
+      name: string;
+      color?: string;
+      defaultStartTime?: string;
+      defaultEndTime?: string;
+    }) => {
       if (!calendarId) throw new Error("No calendar selected");
       return createLocationApi({ calendarId, ...data });
     },
@@ -132,7 +137,14 @@ export function useCalendarLocations(calendarId: string | null) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { locationId: string; name?: string; color?: string | null; order?: number }) => {
+    mutationFn: (data: {
+      locationId: string;
+      name?: string;
+      color?: string | null;
+      order?: number;
+      defaultStartTime?: string;
+      defaultEndTime?: string;
+    }) => {
       if (!calendarId) throw new Error("No calendar selected");
       return updateLocationApi({ calendarId, ...data });
     },

@@ -64,8 +64,8 @@ export function CalendarLocationsManager({
       await createLocation(
         newLocationName.trim(),
         newLocationColor,
-        isEmployeeInterface ? newStartTime : undefined,
-        isEmployeeInterface ? newEndTime : undefined
+        newStartTime || "09:00",
+        newEndTime || "17:00"
       );
       setIsAdding(false);
       setNewLocationName("");
@@ -98,8 +98,8 @@ export function CalendarLocationsManager({
         editName.trim(),
         editColor,
         undefined,
-        isEmployeeInterface ? editStartTime : undefined,
-        isEmployeeInterface ? editEndTime : undefined
+        editStartTime || "09:00",
+        editEndTime || "17:00"
       );
       setEditingId(null);
     } catch (error) {
@@ -323,7 +323,7 @@ export function CalendarLocationsManager({
                       </span>
 
                       {/* Default start & end time in the same row as location name */}
-                      {isEmployeeInterface && isMultiLocation && (
+                      {isEmployeeInterface && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono bg-muted/60 text-muted-foreground border border-border/40 shrink-0 ml-2">
                           <Clock className="w-3 h-3 text-primary/70" />
                           {defaultStart} - {defaultEnd}
