@@ -102,7 +102,7 @@ export async function PATCH(
     const { id } = await params;
     const user = await getSessionUser(request.headers);
     const body = await request.json();
-    const { name, color, guestPermission } = body;
+    const { name, color, guestPermission, defaultStartTime, defaultEndTime } = body;
 
     // Fetch current calendar
     const [existingCalendar] = await db
@@ -138,6 +138,20 @@ export async function PATCH(
     if (color && color !== existingCalendar.color) {
       updateData.color = color;
       changes.push("color");
+    }
+    if (
+      defaultStartTime !== undefined &&
+      defaultStartTime !== existingCalendar.defaultStartTime
+    ) {
+      updateData.defaultStartTime = defaultStartTime;
+      changes.push("defaultStartTime");
+    }
+    if (
+      defaultEndTime !== undefined &&
+      defaultEndTime !== existingCalendar.defaultEndTime
+    ) {
+      updateData.defaultEndTime = defaultEndTime;
+      changes.push("defaultEndTime");
     }
     if (
       guestPermission !== undefined &&

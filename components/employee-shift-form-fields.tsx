@@ -83,7 +83,14 @@ export function EmployeeShiftFormFields({
               disabled={readOnly}
               className="flex h-11 w-full rounded-md border border-border/50 bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus:border-primary/50 focus:ring-primary/20"
               onChange={(e) => {
-                onFormDataChange({ ...formData, locationId: e.target.value });
+                const targetLocId = e.target.value;
+                const loc = locations.find((l) => l.id === targetLocId);
+                onFormDataChange({
+                  ...formData,
+                  locationId: targetLocId,
+                  startTime: loc?.defaultStartTime || formData.startTime,
+                  endTime: loc?.defaultEndTime || formData.endTime,
+                });
               }}
               onBlur={onBlur}
             >

@@ -18,15 +18,19 @@ async function createLocationApi({
   calendarId,
   name,
   color,
+  defaultStartTime,
+  defaultEndTime,
 }: {
   calendarId: string;
   name: string;
   color?: string;
+  defaultStartTime?: string;
+  defaultEndTime?: string;
 }): Promise<CalendarLocation> {
   const response = await fetch(`/api/calendars/${calendarId}/locations`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, color }),
+    body: JSON.stringify({ name, color, defaultStartTime, defaultEndTime }),
   });
   if (!response.ok) {
     const error = await response.json();
@@ -41,17 +45,28 @@ async function updateLocationApi({
   name,
   color,
   order,
+  defaultStartTime,
+  defaultEndTime,
 }: {
   calendarId: string;
   locationId: string;
   name?: string;
   color?: string | null;
   order?: number;
+  defaultStartTime?: string;
+  defaultEndTime?: string;
 }): Promise<CalendarLocation> {
   const response = await fetch(`/api/calendars/${calendarId}/locations`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ locationId, name, color, order }),
+    body: JSON.stringify({
+      locationId,
+      name,
+      color,
+      order,
+      defaultStartTime,
+      defaultEndTime,
+    }),
   });
   if (!response.ok) {
     const error = await response.json();
@@ -162,10 +177,34 @@ export function useCalendarLocations(calendarId: string | null) {
     locations,
     loading: isLoading,
     hasLoadedOnce: isFetched,
-    createLocation: (name: string, color?: string) =>
-      createMutation.mutateAsync({ name, color }),
-    updateLocation: (locationId: string, name?: string, color?: string | null, order?: number) =>
-      updateMutation.mutateAsync({ locationId, name, color, order }),
+    createLocation: (
+      name: string,
+      color?: string,
+      defaultStartTime?: string,
+      defaultEndTime?: string
+    ) =>
+      createMutation.mutateAsync({
+        name,
+        color,
+        defaultStartTime,
+        defaultEndTime,
+      }),
+    updateLocation: (
+      locationId: string,
+      name?: string,
+      color?: string | null,
+      order?: number,
+      defaultStartTime?: string,
+      defaultEndTime?: string
+    ) =>
+      updateMutation.mutateAsync({
+        locationId,
+        name,
+        color,
+        order,
+        defaultStartTime,
+        defaultEndTime,
+      }),
     deleteLocation: (locationId: string) => deleteMutation.mutateAsync(locationId),
     refetchLocations: refetch,
   };

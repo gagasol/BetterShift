@@ -221,6 +221,26 @@ export function useCanDeleteCalendar(): boolean {
 }
 
 /**
+ * Hook to require superadmin access (redirects non-superadmins)
+ *
+ * @param redirectTo - Optional redirect path (default: "/admin")
+ */
+export function useRequireSuperAdmin(redirectTo: string = "/admin"): void {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!isSuperAdmin(user)) {
+      const url = new URL(redirectTo, window.location.origin);
+      url.searchParams.set("error", "superadmin_access_required");
+      router.push(url.toString());
+    }
+  }, [user, isLoading, router, redirectTo]);
+}
+
+/**
  * Hook to check if current admin can transfer calendar ownership
  *
  * @returns boolean - true if current admin can transfer calendars

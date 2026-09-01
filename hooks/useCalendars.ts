@@ -65,6 +65,8 @@ async function updateCalendarApi(
     name?: string;
     color?: string;
     guestPermission?: "none" | "read" | "write";
+    defaultStartTime?: string;
+    defaultEndTime?: string;
   }
 ): Promise<CalendarWithCount> {
   const response = await fetch(`/api/calendars/${calendarId}`, {
@@ -217,6 +219,8 @@ export function useCalendars(initialCalendarId?: string | null) {
         name?: string;
         color?: string;
         guestPermission?: "none" | "read" | "write";
+        defaultStartTime?: string;
+        defaultEndTime?: string;
       };
     },
     UpdateCalendarContext
@@ -340,6 +344,8 @@ export function useCalendars(initialCalendarId?: string | null) {
       name?: string;
       color?: string;
       guestPermission?: "none" | "read" | "write";
+      defaultStartTime?: string;
+      defaultEndTime?: string;
     }
   ) => {
     try {

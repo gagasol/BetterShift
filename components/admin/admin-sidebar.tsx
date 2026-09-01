@@ -18,9 +18,11 @@ import {
   ChevronRight,
   ArrowLeft,
   Crown,
+  UserCheck,
 } from "lucide-react";
 import { useAdminLevel } from "@/hooks/useAdminAccess";
 import { useAuth } from "@/hooks/useAuth";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
 
 interface NavItem {
   label: string;
@@ -74,6 +76,16 @@ export function AdminSidebar({
       href: "/admin/users",
       icon: Users,
     },
+    ...(FEATURE_FLAGS.ENABLE_EMPLOYEE_BASED_INTERFACE && isSuperAdmin
+      ? [
+          {
+            label: "Employee Settings",
+            href: "/admin/employees",
+            icon: UserCheck,
+            adminOnly: true,
+          },
+        ]
+      : []),
     {
       label: t("admin.calendarsMenu"),
       href: "/admin/calendars",

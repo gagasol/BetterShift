@@ -6,8 +6,51 @@ export type {
   CalendarLocation,
   Absence,
   NewAbsence,
+  EmployeeCalendarSetting,
+  NewEmployeeCalendarSetting,
 } from "./db/schema";
 import type { CalendarLocation, Absence } from "./db/schema";
+
+export type FixedShiftPatternType =
+  | "weekly"
+  | "biweekly"
+  | "monthly_nth_day"
+  | "monthly_day_of_month";
+
+export interface FixedShiftRule {
+  id: string;
+  title?: string;
+  patternType: FixedShiftPatternType;
+  dayOfWeek?: number; // 1 = Mon ... 7 = Sun
+  weekInterval?: number; // e.g. 2 for biweekly
+  weekParity?: "even" | "odd" | "all";
+  nthOccurrence?: 1 | 2 | 3 | 4 | -1; // 1st, 2nd, 3rd, 4th, -1 = last
+  dayOfMonth?: number; // 1-31
+  locationId?: string | null;
+  startTime: string;
+  endTime: string;
+  color?: string | null;
+  notes?: string | null;
+}
+
+export interface EmployeeCalendarSettingWithUser {
+  id?: string;
+  calendarId: string;
+  userId: string;
+  preferredWorkDays: number[]; // 1=Mon ... 7=Sun
+  maxHoursPerMonth: number | null;
+  preferredHoursPerMonth: number | null;
+  minHoursPerMonth: number | null;
+  canWorkAlone: boolean;
+  fixedShifts: FixedShiftRule[];
+  user?: {
+    id: string;
+    name: string | null;
+    email: string;
+    image?: string | null;
+    role?: string | null;
+  } | null;
+}
 
 export interface AbsenceWithDetails extends Absence {
   calendar?: {
@@ -27,6 +70,8 @@ export interface CalendarWithCount {
   id: string;
   name: string;
   color: string;
+  defaultStartTime?: string | null;
+  defaultEndTime?: string | null;
   ownerId?: string | null;
   guestPermission?: "none" | "read" | "write";
   createdAt: Date | null;

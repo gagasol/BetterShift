@@ -23,10 +23,14 @@ export function useShiftForm({
 }: UseShiftFormOptions) {
   const { locations } = useCalendarLocations(calendarId || null);
 
-  const defaultLocId =
-    shift?.locationId ||
-    selectedLocationId ||
-    (locations.length > 0 ? locations[0].id : undefined);
+  const defaultLoc =
+    locations.find(
+      (l) => l.id === (shift?.locationId || selectedLocationId)
+    ) || locations[0];
+
+  const defaultLocId = defaultLoc?.id;
+  const initialStartTime = shift?.startTime || defaultLoc?.defaultStartTime || "09:00";
+  const initialEndTime = shift?.endTime || defaultLoc?.defaultEndTime || "17:00";
 
   const [formData, setFormData] = useState<ShiftFormData>({
     date:
@@ -35,11 +39,11 @@ export function useShiftForm({
         : selectedDate
         ? formatDateToLocal(selectedDate)
         : formatDateToLocal(new Date()),
-    startTime: shift?.startTime || "09:00",
-    endTime: shift?.endTime || "17:00",
+    startTime: initialStartTime,
+    endTime: initialEndTime,
     title: shift?.title || "",
     notes: shift?.notes || "",
-    color: shift?.color || "#3b82f6",
+    color: shift?.color || defaultLoc?.color || "#3b82f6",
     isAllDay: false,
     locationId: defaultLocId,
   });
@@ -79,16 +83,18 @@ export function useShiftForm({
   };
 
   const resetForm = () => {
-    const locId = selectedLocationId || (locations.length > 0 ? locations[0].id : undefined);
+    const loc =
+      locations.find((l) => l.id === selectedLocationId) || locations[0];
+    const locId = loc?.id;
     setFormData({
       date: selectedDate
         ? formatDateToLocal(selectedDate)
         : formatDateToLocal(new Date()),
-      startTime: "09:00",
-      endTime: "17:00",
+      startTime: loc?.defaultStartTime || "09:00",
+      endTime: loc?.defaultEndTime || "17:00",
       title: "",
       notes: "",
-      color: "#3b82f6",
+      color: loc?.color || "#3b82f6",
       isAllDay: false,
       locationId: locId,
     });
@@ -103,10 +109,11 @@ export function useShiftForm({
   // Only update on mount or when key changes
   useEffect(() => {
     if (open) {
-      const locId =
-        shift?.locationId ||
-        selectedLocationId ||
-        (locations.length > 0 ? locations[0].id : undefined);
+      const loc =
+        locations.find(
+          (l) => l.id === (shift?.locationId || selectedLocationId)
+        ) || locations[0];
+      const locId = loc?.id;
 
       const newFormData: ShiftFormData = {
         date:
@@ -115,11 +122,11 @@ export function useShiftForm({
             : selectedDate
             ? formatDateToLocal(selectedDate)
             : formatDateToLocal(new Date()),
-        startTime: shift?.startTime || "09:00",
-        endTime: shift?.endTime || "17:00",
+        startTime: shift?.startTime || loc?.defaultStartTime || "09:00",
+        endTime: shift?.endTime || loc?.defaultEndTime || "17:00",
         title: shift?.title || "",
         notes: shift?.notes || "",
-        color: shift?.color || "#3b82f6",
+        color: shift?.color || loc?.color || "#3b82f6",
         isAllDay: shift?.isAllDay || false,
         locationId: locId,
       };

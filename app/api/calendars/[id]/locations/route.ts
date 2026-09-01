@@ -81,7 +81,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { name, color, order } = body;
+    const { name, color, order, defaultStartTime, defaultEndTime } = body;
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json(
@@ -106,6 +106,8 @@ export async function POST(
         calendarId,
         name: name.trim(),
         color: color || null,
+        defaultStartTime: defaultStartTime || "09:00",
+        defaultEndTime: defaultEndTime || "17:00",
         order: locationOrder,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -140,7 +142,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { locationId, name, color, order } = body;
+    const { locationId, name, color, order, defaultStartTime, defaultEndTime } = body;
 
     if (!locationId) {
       return NextResponse.json(
@@ -153,6 +155,8 @@ export async function PATCH(
       name?: string;
       color?: string | null;
       order?: number;
+      defaultStartTime?: string;
+      defaultEndTime?: string;
       updatedAt: Date;
     } = {
       updatedAt: new Date(),
@@ -166,6 +170,12 @@ export async function PATCH(
     }
     if (typeof order === "number") {
       updateData.order = order;
+    }
+    if (typeof defaultStartTime === "string") {
+      updateData.defaultStartTime = defaultStartTime;
+    }
+    if (typeof defaultEndTime === "string") {
+      updateData.defaultEndTime = defaultEndTime;
     }
 
     const [updated] = await db

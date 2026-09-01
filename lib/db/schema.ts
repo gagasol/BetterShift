@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
 import { sql, relations } from "drizzle-orm";
 
 // =====================================================
@@ -105,6 +105,8 @@ export const calendars = sqliteTable(
       .$defaultFn(() => crypto.randomUUID()),
     name: text("name").notNull(),
     color: text("color").notNull().default("#3b82f6"),
+    defaultStartTime: text("default_start_time").default("09:00"),
+    defaultEndTime: text("default_end_time").default("17:00"),
     ownerId: text("owner_id").references(() => user.id, {
       onDelete: "set null",
     }),
@@ -225,6 +227,8 @@ export const calendarLocations = sqliteTable(
     name: text("name").notNull(),
     order: integer("order").notNull().default(0),
     color: text("color"),
+    defaultStartTime: text("default_start_time").default("09:00"),
+    defaultEndTime: text("default_end_time").default("17:00"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
@@ -460,6 +464,39 @@ export const absences = sqliteTable(
   ]
 );
 
+export const employeeCalendarSettings = sqliteTable(
+  "employee_calendar_settings",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    calendarId: text("calendar_id")
+      .notNull()
+      .references(() => calendars.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    preferredWorkDays: text("preferred_work_days"), // JSON array of numbers 1-7
+    maxHoursPerMonth: real("max_hours_per_month"),
+    preferredHoursPerMonth: real("preferred_hours_per_month"),
+    minHoursPerMonth: real("min_hours_per_month"),
+    canWorkAlone: integer("can_work_alone", { mode: "boolean" })
+      .notNull()
+      .default(true),
+    fixedShifts: text("fixed_shifts"), // JSON array of FixedShiftRule
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("employee_calendar_settings_calendarId_idx").on(table.calendarId),
+    index("employee_calendar_settings_userId_idx").on(table.userId),
+  ]
+);
+
 export type Calendar = typeof calendars.$inferSelect;
 export type NewCalendar = typeof calendars.$inferInsert;
 
@@ -471,6 +508,11 @@ export type NewCalendarAccessToken = typeof calendarAccessTokens.$inferInsert;
 
 export type Absence = typeof absences.$inferSelect;
 export type NewAbsence = typeof absences.$inferInsert;
+
+export type EmployeeCalendarSetting =
+  typeof employeeCalendarSettings.$inferSelect;
+export type NewEmployeeCalendarSetting =
+  typeof employeeCalendarSettings.$inferInsert;
 
 export type ExternalSync = typeof externalSyncs.$inferSelect;
 export type NewExternalSync = typeof externalSyncs.$inferInsert;
@@ -510,6 +552,7 @@ export const userRelations = relations(user, ({ many }) => ({
   calendarSubscriptions: many(userCalendarSubscriptions),
   auditLogs: many(auditLogs),
   absences: many(absences),
+  employeeSettings: many(employeeCalendarSettings),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -541,6 +584,7 @@ export const calendarsRelations = relations(calendars, ({ one, many }) => ({
   absences: many(absences),
   externalSyncs: many(externalSyncs),
   syncLogs: many(syncLogs),
+  employeeSettings: many(employeeCalendarSettings),
 }));
 
 export const calendarLocationsRelations = relations(
@@ -633,3 +677,17 @@ export const absencesRelations = relations(absences, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+export const employeeCalendarSettingsRelations = relations(
+  employeeCalendarSettings,
+  ({ one }) => ({
+    calendar: one(calendars, {
+      fields: [employeeCalendarSettings.calendarId],
+      references: [calendars.id],
+    }),
+    user: one(user, {
+      fields: [employeeCalendarSettings.userId],
+      references: [user.id],
+    }),
+  })
+);
