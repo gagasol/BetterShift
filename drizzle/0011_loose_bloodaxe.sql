@@ -1,1 +1,0 @@
-ALTER TABLE `shift_presets` ADD `order` integer DEFAULT 0 NOT NULL;

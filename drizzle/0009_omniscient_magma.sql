@@ -1,1 +1,0 @@
-ALTER TABLE `external_syncs` ADD `is_one_time_import` integer DEFAULT false NOT NULL;

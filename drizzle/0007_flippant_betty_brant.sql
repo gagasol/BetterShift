@@ -1,1 +1,0 @@
-ALTER TABLE `icloud_syncs` ADD `auto_sync_interval` integer DEFAULT 0 NOT NULL;

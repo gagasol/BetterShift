@@ -1,1 +1,0 @@
-ALTER TABLE `calendars` ADD `password_hash` text;
